@@ -4,7 +4,7 @@ from ultralytics import YOLO
 model = YOLO("yolo11x-seg")
 
 # Return a list of object detections
-results = model(["images/image5.jpg"])
+results = model(["images/image.jpg"])
 
 # Process results list
 for result in results:
@@ -14,6 +14,6 @@ for result in results:
     probs = result.probs  # Probs object for classification outputs
     obb = result.obb  # Oriented boxes object for OBB outputs
     result.show()  # display to screen
-    result.save(filename="result.jpg")  # save to disk
+    result.save(filename="segmentation-results/result.jpg")  # save to disk
     
     # Result should be segmentation and bounding boxes around a person and bag
