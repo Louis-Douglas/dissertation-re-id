@@ -1,10 +1,14 @@
 from ultralytics import YOLO
 
+#
+# OUTDATED
+#
+
 # Loan pretrained YOLO11x model (x is the most powerful version)
 model = YOLO("yolo11x-seg")
 
 # Return a list of object detections
-results = model(["images/image.jpg"])
+results = model(["../images/image.jpg"])
 
 # Process results list
 for result in results:

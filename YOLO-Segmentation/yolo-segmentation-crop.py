@@ -8,7 +8,7 @@ from torchvision.ops import box_iou, distance_box_iou, generalized_box_iou, comp
 model = YOLO("yolo11x-seg", task="segmentation")
 
 # Load and process image
-image_path = "images/image4.jpg"
+image_path = "../images/image4.jpg"
 # results = model([image_path], classes=[0])
 
 # TODO: Accept input for classes we want, maybe an enum?
