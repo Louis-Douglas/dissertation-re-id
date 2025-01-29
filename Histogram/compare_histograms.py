@@ -3,25 +3,8 @@
 # https://pyimagesearch.com/2014/07/14/3-ways-compare-histograms-using-opencv-python/
 
 import cv2
-import numpy as np
 import matplotlib.pyplot as plt
-
-# Calculate the histogram for each colour channel, return as a list
-def calculate_histogram(image):
-    histograms = []
-    colours = ("b", "g", "r")
-    for channel, colour in enumerate(colours):
-        hist = cv2.calcHist([image], [channel], None, [256], [0, 256])
-        histograms.append(hist)
-    return histograms
-
-# Get similarity for each channel between two histograms, average all 3 similarity scores
-def compare_histograms(hist1, hist2):
-    similarities = []
-    for h1, h2 in zip(hist1, hist2):
-        similarity = cv2.compareHist(h1, h2, cv2.HISTCMP_BHATTACHARYYA)
-        similarities.append(similarity)
-    return np.mean(similarities)
+from utils import calculate_histogram, compare_histograms
 
 # Load the two images
 image1_path = "compare-images/1.png"

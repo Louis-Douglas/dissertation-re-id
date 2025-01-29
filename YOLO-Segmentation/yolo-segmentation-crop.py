@@ -3,12 +3,13 @@ import numpy as np
 from PIL import Image
 import torch
 from torchvision.ops import box_iou, distance_box_iou, generalized_box_iou, complete_box_iou
+from Histogram.utils import is_connected
 
 # Load pretrained YOLO model
 model = YOLO("yolo11x-seg", task="segmentation")
 
 # Load and process image
-image_path = "../images/image4.jpg"
+image_path = "../images/image6.jpg"
 # results = model([image_path], classes=[0])
 
 # TODO: Accept input for classes we want, maybe an enum?
@@ -18,19 +19,6 @@ results = model.predict(image_path, classes=[1, 0, 24, 26, 28])
 original_image = Image.open(image_path).convert("RGBA")
 
 # TODO: Input accept masks/result
-
-# TODO: Setup unit test for if objects are connected and test against these thresholds to help fine tune
-def is_connected(box1, box2, iou_threshold=0.1, distance_threshold=0.1):
-
-    # Get intersection over union of the two boxes
-    iou = box_iou(box1, box2)
-
-    # Calculate center distance between two boxes
-    distance = distance_box_iou(box1, box2)
-
-    # Check IoU and distance thresholds
-    return iou > iou_threshold or distance < distance_threshold
-
 
 # Process results
 for result in results:
