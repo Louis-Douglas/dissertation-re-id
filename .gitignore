@@ -1,5 +1,26 @@
+# Ignore IDE files
 .idea/
+
+# Ignore environment files
+.env
+
+# Ignore model files and artifacts
 *.pt
+*.mlpackage
+
+# Ignore annotations JSON files
 *.json
+
+# Ignore specific datasets and training directories
 Modanet-Repo/
 Market-1501-v15.09.15/
+Training/COCO/
+Training/MODANET/
+Training/Convert-COCO-YOLO/
+
+# Ignore pycache
+__pycache__/
+
+# Ensure all subdirectories are ignored
+Training/**
+Datasets/**
