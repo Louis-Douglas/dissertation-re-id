@@ -22,7 +22,5 @@ Training/Convert-COCO-YOLO/
 __pycache__/
 
 # Ensure all subdirectories are ignored
-Training/**
-Datasets/**
-/YOLO_Segmentation/segmentation-crop-results/
-/YOLO_Segmentation/split-results/
+Training/
+Datasets/

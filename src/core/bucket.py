@@ -1,5 +1,5 @@
 import numpy as np
-from Histogram.utils import calculate_histogram, compare_histograms
+from src.utils.histogram_utils import calculate_histogram, compare_histograms
 import cv2
 
 class Bucket:

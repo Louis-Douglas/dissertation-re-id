@@ -1,13 +1,13 @@
 from ultralytics import YOLO
-from Segmentation_Processing.utils import extract_segmented_object, get_target_person
-from Histogram.utils import calculate_histogram, compare_histograms, visualise_histogram
+from src.utils.segmentation_utils import extract_segmented_object, get_target_person
+from src.utils.histogram_utils import calculate_histogram
 import os
 import cv2
 import torch
 from PIL import Image
 import numpy as np
-from YOLO_Segmentation.processed_image import ProcessedImage
-from YOLO_Segmentation.bucket import Bucket
+from src.core.processed_image import ProcessedImage
+from src.core.bucket import Bucket
 
 # Todo: Either use it or lose it
 # Function to get all images in a directory
@@ -110,7 +110,7 @@ def main(image_dir, model_path):
 
 if __name__ == '__main__':
     # image_dir = "../Market-1501-v15.09.15/bounding_box_test"
-    image_dir = "images"
+    image_dir = "../images"
     # model_path = "Training/yolo11x-seg.mlpackage"  # Use a segmentation-trained YOLO model
-    model_path = "Training/yolo11x-seg.pt"  # Use a segmentation-trained YOLO model
+    model_path = "../Training/yolo11x-seg.pt"  # Use a segmentation-trained YOLO model
     main(image_dir, model_path)
