@@ -3,14 +3,16 @@ import numpy as np
 from PIL import Image
 import torch
 from torchvision.ops import box_iou, distance_box_iou, generalized_box_iou, complete_box_iou
-from Histogram.utils import is_connected
+from Segmentation_Processing.utils import is_connected
 
 # Load pretrained YOLO model
-model = YOLO("yolo11x-seg", task="segmentation")
+model = YOLO("../Training/yolo11x-seg.pt")
 
 # Load and process image
-image_path = "../images/image6.jpg"
+image_path = "../images/image3.jpg"
 # results = model([image_path], classes=[0])
+# image = Image.open(image_path).convert("RGB")
+# image = image.resize((64, 128))
 
 # TODO: Accept input for classes we want, maybe an enum?
 results = model.predict(image_path, classes=[1, 0, 24, 26, 28])
