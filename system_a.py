@@ -1,9 +1,15 @@
-from Histogram.utils import calculate_histogram, image_split, compare_histograms, visualise_histogram
+from ultralytics import YOLO
+from Segmentation_Processing.utils import extract_segmented_object, get_target_person
+from Histogram.utils import calculate_histogram, compare_histograms, visualise_histogram
 import os
 import cv2
+import torch
 from PIL import Image
 import numpy as np
+from YOLO_Segmentation.processed_image import ProcessedImage
+from YOLO_Segmentation.bucket import Bucket
 
+# Todo: Either use it or lose it
 # Function to get all images in a directory
 def get_images(input_dir = "images"):
     images = {}
@@ -17,76 +23,94 @@ def get_images(input_dir = "images"):
             images[file.title()] = image
     return images
 
+def sort_buckets(bucket_dict):
 
-def calculate_buckets(image_group_list):
-    buckets = {}
-    bucket_id = 1  # Arbitrary ID for buckets
-
-    while image_group_list:
+    while bucket_dict:
         # print(image_group_list)
         # Take the first image group from the list
-        current_image_group = image_group_list.popitem()
-        print(f"Popped off: {current_image_group[0]}")
-        # print(f"Popped off: {current_image_group[1][2]}")
+        current_bucket = bucket_dict.popitem()[1]
+        print(f"Popped off bucket #{current_bucket.bucket_id}")
 
         # Initialise variables to track the most similar match
         best_match = None
-        best_match_index = None
         best_similarity = float("inf")
 
-        # Compare the current image histogram with all remaining images
-        for image_group_title, image_group in image_group_list.items():
+        # Compare the current bucket with all remaining buckets
+        for bucket_id, bucket in bucket_dict.items():
 
-            print(f"Checking {current_image_group[0]} against {image_group_title}")
-            total_similarity = 0.0
+            print(f"Checking {bucket_id} against {current_bucket.bucket_id}")
+            similarity = bucket.compare_with_bucket(current_bucket)
 
-            # Loop through each section of the image, comparing its similarity to the current image groups section
-            for section_number, section in image_group.items():
-                compare_other = current_image_group[1][section_number]
-                similarity_score = compare_histograms(section, compare_other)
-                total_similarity += similarity_score
-                print(f"Section {section_number} similarity: {similarity_score}")
-            total_similarity /= len(image_group)
-            if total_similarity < best_similarity:
-                best_similarity = total_similarity
-                best_match = image_group
-                best_match_index = image_group_title
-            print("--------")
+            if similarity < best_similarity:
+                best_similarity = similarity
+                best_match = bucket
 
-        image_group_list.pop(best_match_index)
-        print(f"Best match for {current_image_group[0]} - {best_match_index}")
-
-
-def main():
-    images = get_images()
-
-    # Todo: Figure out the right data structure to hold the 4 sections and all histograms
-    sectioned_images = {}
-
-    for title, image in images.items():
-        image_sections = image_split(image)
-        histogram_sections = {}
-        for number, section in image_sections.items():
-            # Convert PIL image to NumPy Array image
-            section_bgr = cv2.cvtColor(np.asarray(section), cv2.COLOR_RGB2BGR)
-            hist = calculate_histogram(section_bgr)
-            # visualise_histogram(hist, title=f"Image {title} - Section {number}")
-            histogram_sections[number] = hist
-        sectioned_images[title] = histogram_sections
-
-
-    # print(sectioned_images)
-    # bucketed_images = calculate_buckets(sectioned_images)
-    calculate_buckets(sectioned_images)
+        # Merge the bucket with the best match
+        if best_similarity < 0.36:
+            print(f"Best match for {current_bucket.bucket_id} - {best_match.bucket_id} with similarity {best_similarity}")
+            best_match.merge_bucket(current_bucket)
+            print("Current bucket images:")
+            for image in current_bucket.images:
+                print(image.image_name)
+            print("Best match bucket images:")
+            for image in best_match.images:
+                print(image.image_name)
+        else:
+            print(f"No more matches for: {current_bucket.bucket_id}")
 
 
 
-# Get all images in market dataset -
-# Split the images into the chunks (image_split.py) -
-# Calculate histograms for all chunks of all images (group the chunk histograms) -
-# Take a histogram, compare to all other histograms, most similar one put into a dictionary -
-# Generate mean histogram values from all images in bucket, for future comparisons
+def main(image_dir, model_path):
+    # Load pretrained YOLO model
+    model = YOLO(model_path)
+
+    # Run prediction on directory, filtering to only person class
+    results = model.predict(image_dir, classes=[0], device=torch.device("mps"), stream=True)
+
+    processed_images = []
+
+    # Process results
+    for result in results:
+        # Get mask of primary target person for re-identification
+        person_data = get_target_person(result)
+        image_name = os.path.basename(result.path)
+        print(f"Processing {image_name}")
+
+        # Open the original image
+        original_image = Image.open(result.path).convert("RGBA")
+
+        # Extract person "object" from the original image, removing background
+        extracted_image = extract_segmented_object(person_data["mask"], original_image)
+
+        # Convert the extracted image into a processed image to give us sections
+        processed_image = ProcessedImage(result.path, extracted_image)
+        processed_images.append(processed_image)
+
+        for section_number, section in processed_image.image_sections.items():
+            extracted_bgr = cv2.cvtColor(np.asarray(extracted_image), cv2.COLOR_RGB2BGR)
+            hist = calculate_histogram(extracted_bgr)
+            # visualise_histogram(hist, title=f"Image Original {image_name} Section {section_number}")
+
+        # Put ALL images into buckets (1 image per bucket)
+        # Compare bucket 1 against rest using histogram
+        # If similarity score isn't above a threshold, move bucket to completed list?
+        # Combine best match into bucket 1
+        # Compute average histogram
+        # Move bucket 1 to end of list
+        # Repeat from step 2
+
+    buckets = {}
+    for i, processed_image in enumerate(processed_images):
+        bucket = Bucket(i)
+        bucket.add_image(processed_image)
+        buckets[i] = bucket
+
+    sort_buckets(buckets)
 
 
 if __name__ == '__main__':
-    main()
+    # image_dir = "../Market-1501-v15.09.15/bounding_box_test"
+    image_dir = "images"
+    # model_path = "Training/yolo11x-seg.mlpackage"  # Use a segmentation-trained YOLO model
+    model_path = "Training/yolo11x-seg.pt"  # Use a segmentation-trained YOLO model
+    main(image_dir, model_path)
