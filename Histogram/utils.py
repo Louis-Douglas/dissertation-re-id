@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from torchvision.ops import box_iou, distance_box_iou
 import matplotlib.pyplot as plt
 
 # Modified from: https://docs.opencv.org/3.4/d8/dbc/tutorial_histogram_calculation.html &
@@ -47,55 +46,6 @@ def compare_histograms(hist1, hist2):
         similarities.append(similarity)
     return np.mean(similarities)
 
-def image_split(image):
-    """
-    Splits an image into four equal horizontal sections.
-
-    Args:
-        image (PIL.Image.Image): The input image to be split.
-
-    Returns:
-        dict: A dictionary where the keys (1 to 4) represent section numbers,
-              and the values are the corresponding cropped image sections (PIL.Image.Image).
-    """
-    width, height = image.size
-    section_height = height // 4
-    image_sections = {}
-
-    for i in range(4):
-        top = i * section_height  # Get the top y value of the current section
-        bottom = (i + 1) * section_height  # Get the bottom y value of the current section
-        cropped_section = image.crop((0, top, width, bottom))  # Crop to those y values
-        image_sections[i + 1] = cropped_section
-
-    return image_sections
-
-# TODO: Setup unit test for if objects are connected and test against these thresholds to help fine tune
-def is_connected(box1, box2, iou_threshold=0.1, distance_threshold=0.1):
-    """
-    Determines whether two bounding boxes are considered connected based on
-    Intersection over Union (IoU) and center distance.
-
-    Args:
-        box1 (Tensor array): The first bounding box in the format (x1, y1, x2, y2).
-        box2 (Tensor array): The second bounding box in the same format as box1.
-        iou_threshold (float, optional): The minimum IoU required for boxes to be considered connected.
-                                         Defaults to 0.1.
-        distance_threshold (float, optional): The maximum center distance allowed for boxes to be considered
-                                              connected. Defaults to 0.1.
-
-    Returns:
-        bool: True if the boxes are considered connected, False otherwise.
-    """
-    # Get intersection over union of the two boxes
-    iou = box_iou(box1, box2)
-
-    # Calculate center distance between two boxes
-    distance = distance_box_iou(box1, box2)
-
-    # Check IoU and distance thresholds
-    return iou > iou_threshold or distance < distance_threshold
-
 def visualise_histogram(histograms, title="Histogram"):
     """
     Visualises the inputted histograms using matplotlib.
@@ -106,7 +56,7 @@ def visualise_histogram(histograms, title="Histogram"):
     """
     plt.figure(figsize=(8, 6))
 
-    # Plot each histogram with its corresponding color
+    # Plot each histogram with its corresponding colour
     for hist, color in zip(histograms, ('b', 'g', 'r')):
         plt.plot(hist, color=color, label=f"{color.upper()} channel")
         plt.xlim([0, 256])  # Intensity range for 8-bit images
