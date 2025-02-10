@@ -104,3 +104,23 @@ class Bucket:
         self.images.extend(other_bucket.images)
         # Recompute the average histograms to reflect the merged images.
         self.update_average_histogram()
+
+
+    def __str__(self):
+        """
+        Returns a string representation of the bucket, listing image titles.
+        """
+        if not self.images:
+            return f"Bucket {self.bucket_id} is empty."
+
+        image_titles = []
+        for image in self.images:
+            image_titles.append(image.image_name)
+        return f"Bucket {self.bucket_id} contains images: \n- {'\n- '.join(image_titles)}"
+
+
+    def __repr__(self):
+        """
+        Official string representation for debugging.
+        """
+        return self.__str__()
