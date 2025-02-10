@@ -1,71 +1,94 @@
 from ultralytics import YOLO
 from src.utils.segmentation_utils import extract_segmented_object, get_target_person
-from src.utils.histogram_utils import calculate_histogram
 import os
-import cv2
 import torch
 from PIL import Image
-import numpy as np
 from src.core.processed_image import ProcessedImage
 from src.core.bucket import Bucket
 
-# Todo: Either use it or lose it
-# Function to get all images in a directory
-def get_images(input_dir = "images"):
-    images = {}
-    for file in os.listdir(input_dir):
-        # Construct file path and load image
-        file_path = os.path.join(input_dir, file)
-        file_extension = os.path.splitext(file)[1]
-        if file_extension == ".jpg":
-            image = Image.open(file_path)
-            # image = cv2.imread(file_path) # (B G R) Image
-            images[file.title()] = image
-    return images
+def get_closest_bucket(bucket_dict, current_bucket):
+    """
+    Finds the most similar bucket to the given bucket based on histogram comparison.
+
+    Args:
+        bucket_dict (dict): Dictionary of buckets to check against.
+        current_bucket (Bucket): The bucket to compare against others.
+
+    Returns:
+        tuple: The most similar Bucket object and its similarity score.
+    """
+    # Initialise variables to track the most similar match
+    best_match = None
+    best_similarity = float("inf")
+
+    # Compare the current bucket with all remaining buckets
+    for bucket_id, bucket in bucket_dict.items():
+
+        # print(f"Checking {bucket_id} against {current_bucket.bucket_id}")
+        similarity = bucket.compare_with_bucket(current_bucket)
+
+        if similarity < best_similarity:
+            best_similarity = similarity
+            best_match = bucket
+    return best_match, best_similarity
+
 
 def sort_buckets(bucket_dict):
+    """
+    Sorts and merges buckets based on similarity.
+
+    Args:
+        bucket_dict (dict): Dictionary containing bucket_id mapped to Bucket objects.
+    """
 
     while bucket_dict:
-        # print(image_group_list)
-        # Take the first image group from the list
+        # Take the first bucket from the dictionary
         current_bucket = bucket_dict.popitem()[1]
-        print(f"Popped off bucket #{current_bucket.bucket_id}")
+        print("----------------------")
+        print(f"Popped bucket #{current_bucket.bucket_id}")
 
-        # Initialise variables to track the most similar match
-        best_match = None
-        best_similarity = float("inf")
+        # Get the closest bucket in similarity
+        best_match, best_similarity = get_closest_bucket(bucket_dict, current_bucket)
 
-        # Compare the current bucket with all remaining buckets
-        for bucket_id, bucket in bucket_dict.items():
+        # Todo: Remove magic number
+        if best_similarity < 0.50:
+            print(
+                f"Best match for {current_bucket.bucket_id} is "
+                f"Bucket {best_match.bucket_id} (Similarity: {best_similarity:.2f})")
 
-            print(f"Checking {bucket_id} against {current_bucket.bucket_id}")
-            similarity = bucket.compare_with_bucket(current_bucket)
+            print(f"\nCurrent bucket: {current_bucket}")
+            print("\nBest match bucket images BEFORE merge:", best_match)
 
-            if similarity < best_similarity:
-                best_similarity = similarity
-                best_match = bucket
 
-        # Merge the bucket with the best match
-        if best_similarity < 0.36:
-            print(f"Best match for {current_bucket.bucket_id} - {best_match.bucket_id} with similarity {best_similarity}")
+            # Pause and wait for user input before merging
+            input("\nPress Enter to merge these buckets...")
+
+            # Merge the two buckets
             best_match.merge_bucket(current_bucket)
-            print("Current bucket images:")
-            for image in current_bucket.images:
-                print(image.image_name)
-            print("Best match bucket images:")
-            for image in best_match.images:
-                print(image.image_name)
+
+            # Show contents after merging
+            print("\nBuckets merged! Best match bucket NOW contains:", best_match)
+
         else:
-            print(f"No more matches for: {current_bucket.bucket_id}")
+            print(f"\nNo suitable match found for Bucket {current_bucket.bucket_id}")
+
+        # Pause before continuing to the next step
+        input("\nPress Enter to continue to the next bucket...\n")
 
 
-
-def main(image_dir, model_path):
+def main(dataset_dir, model_path):
     # Load pretrained YOLO model
     model = YOLO(model_path)
 
+    # Collect all image paths
+    image_paths = []
+    for root, _, files in os.walk(dataset_dir):
+        for file in files:
+            if file.lower().endswith((".jpg", ".jpeg", ".png")):
+                image_paths.append(os.path.join(root, file))
+
     # Run prediction on directory, filtering to only person class
-    results = model.predict(image_dir, classes=[0], device=torch.device("mps"), stream=True)
+    results = model.predict(image_paths, classes=[0], device=torch.device("mps"), stream=True)
 
     processed_images = []
 
@@ -86,19 +109,6 @@ def main(image_dir, model_path):
         processed_image = ProcessedImage(result.path, extracted_image)
         processed_images.append(processed_image)
 
-        for section_number, section in processed_image.image_sections.items():
-            extracted_bgr = cv2.cvtColor(np.asarray(extracted_image), cv2.COLOR_RGB2BGR)
-            hist = calculate_histogram(extracted_bgr)
-            # visualise_histogram(hist, title=f"Image Original {image_name} Section {section_number}")
-
-        # Put ALL images into buckets (1 image per bucket)
-        # Compare bucket 1 against rest using histogram
-        # If similarity score isn't above a threshold, move bucket to completed list?
-        # Combine best match into bucket 1
-        # Compute average histogram
-        # Move bucket 1 to end of list
-        # Repeat from step 2
-
     buckets = {}
     for i, processed_image in enumerate(processed_images):
         bucket = Bucket(i)
@@ -109,8 +119,6 @@ def main(image_dir, model_path):
 
 
 if __name__ == '__main__':
-    # image_dir = "../Market-1501-v15.09.15/bounding_box_test"
-    image_dir = "../images"
-    # model_path = "Training/yolo11x-seg.mlpackage"  # Use a segmentation-trained YOLO model
+    dataset_dir = "../datasets/Gen-test"
     model_path = "../Training/yolo11x-seg.pt"  # Use a segmentation-trained YOLO model
-    main(image_dir, model_path)
+    main(dataset_dir, model_path)
