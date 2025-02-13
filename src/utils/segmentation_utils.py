@@ -2,7 +2,6 @@ from torchvision.ops import box_iou, distance_box_iou
 from PIL import Image
 import numpy as np
 import torch
-import cv2
 
 def get_target_person(result):
     """
@@ -112,30 +111,30 @@ def is_connected(box1, box2, iou_threshold=0.1, distance_threshold=0.1):
     # Check IoU and distance thresholds
     return iou > iou_threshold or distance < distance_threshold
 
-def get_connected_objects(person_box, result, iou_threshold=0.1, distance_threshold=0.1):
+def get_connected_objects(original_image, person_box, result, iou_threshold=0.1, distance_threshold=0.1):
     """
-    Identifies all objects that are 'connected' to a person in a YOLO segmentation result.
+    Extracts objects (e.g., clothing, accessories) connected to a detected person
+    using bounding boxes and segmentation masks.
 
     Args:
-        person_box (Tensor array): The bounding box of the person.
-        result (ultralytics.engine.results.Results): A single YOLO result.
-        iou_threshold (float, optional): The minimum IoU required for an object to be connected to a person.
-        distance_threshold (float, optional): The maximum Distance IoU allowed for connection.
+        original_image (PIL.Image.Image): The source image.
+        person_box (list or tensor): Bounding box [x1, y1, x2, y2] of the detected person.
+        result (ultralytics.YOLO.Result): YOLO detection result with bounding boxes, class names, and masks.
+        iou_threshold (float, optional): IoU threshold for object-person association. Default is 0.1.
+        distance_threshold (float, optional): Distance threshold for refining connections. Default is 0.1.
 
     Returns:
-        dict or None: A dictionary containing:
-            - 'person_box': Bounding box of the detected person.
-            - 'connected_objects': List of connected objects with class names and bounding boxes.
-          Returns None if multiple or no people are detected.
+        dict: Mapping of detected object class names (e.g., "footwear", "bag")
+              to their segmented images (PIL.Image).
     """
     boxes = result.boxes  # Bounding boxes for detected objects
     class_names = result.names  # Class names from model
 
-    tensor_person_box = torch.tensor(person_box, dtype=torch.float32)  # Convert to tensor
+    tensor_person_box = torch.tensor([person_box], dtype=torch.float32)  # Convert to tensor
 
-    connected_objects = []  # Store connected object details
+    connected_objects = {}  # Store connected object details
 
-    for box in boxes:
+    for i, box in enumerate(boxes):
         class_id = int(box.cls[0].item())  # Class ID of the detection
         class_name = class_names[class_id]  # Class name
 
@@ -147,13 +146,9 @@ def get_connected_objects(person_box, result, iou_threshold=0.1, distance_thresh
 
         # Check if object is connected to the person
         if is_connected(tensor_person_box, tensor_object_box, iou_threshold, distance_threshold):
-            connected_objects.append({
-                "class": class_name,
-                "bounding_box": box.xyxy[0].tolist(),
-                "confidence": box.conf[0].item()
-            })
+            masks = result.masks.data  # Get mask tensors
+            mask = masks[i]  # Convert tensor mask to NumPy array
+            extracted_clothing_image = extract_segmented_object(mask, original_image)
+            connected_objects[class_name] = extracted_clothing_image
 
-    return {
-        "person_box": person_box,
-        "connected_objects": connected_objects
-    }
+    return connected_objects

@@ -1,89 +1,91 @@
 import numpy as np
-from src.utils.histogram_utils import calculate_histogram, compare_histograms
 import cv2
+from src.utils.histogram_utils import calculate_histogram, compare_histograms
+
 
 class Bucket:
     def __init__(self, bucket_id):
         """
         Initialises a Bucket object that stores multiple ProcessedImage objects.
-
-        Args:
-            bucket_id (int): Unique identifier for the bucket.
+        Maintains incremental histogram sums and counts to compute averages efficiently.
         """
-
         self.bucket_id = bucket_id
         self.images = []  # List of ProcessedImage objects
-        self.average_histograms = {}  # Dictionary storing average histograms for sections
+        self.average_histograms = {}  # Dictionary: segment key -> average histogram
+        self.histogram_sums = {}  # Dictionary: segment key -> cumulative histogram sum
+        self.histogram_counts = {}  # Dictionary: segment key -> number of images contributing
 
     def add_image(self, processed_image):
         """
-        Adds a ProcessedImage to the bucket and updates the average histogram.
+        Adds a ProcessedImage to the bucket and updates the average histogram incrementally.
 
         Args:
             processed_image (ProcessedImage): The processed image to be added.
         """
         self.images.append(processed_image)
-        self.update_average_histogram()
+        self._update_histograms_for_image(processed_image)
 
-    def update_average_histogram(self):
+    def _update_histograms_for_image(self, processed_image):
         """
-        Computes the average histogram for each section of all images in the bucket.
+        Incrementally updates the histogram sums, counts, and average for each image segment
+        contained in a ProcessedImage.
+
+        Args:
+            processed_image (ProcessedImage): The processed image whose segments are to be added.
         """
-        if not self.images:
+
+        if not processed_image.image_segments:
             return
 
-        # Todo: Refactor this DRY
-        if len(self.images) == 1:
-            # histogram_sections = {}
-            for section_number, section in self.images[0].image_sections.items():
-                # Convert PIL image to NumPy Array image
-                section_bgr = cv2.cvtColor(np.asarray(section), cv2.COLOR_RGB2BGR)
-                hist = calculate_histogram(section_bgr)
-                # visualise_histogram(hist, title=f"Image {self.images[0].image_name} - Section {section_number}")
-                # histogram_sections[section_number] = hist
-                # self.average_histograms[section_number] = histogram_sections
-                self.average_histograms[section_number] = hist
-            return
+        # Loop over each segment provided in image_segments
+        for segment_key, segment_image in processed_image.image_segments.items():
+            # Convert the PIL image to a NumPy array (BGR format for OpenCV)
+            segment_bgr = cv2.cvtColor(np.asarray(segment_image), cv2.COLOR_RGB2BGR)
+            hist = calculate_histogram(segment_bgr)
 
-        # Dictionary to collect histograms for each section number across all images.
-        section_histograms = {}
-        for image in self.images:
-            for section_number, section in image.image_sections.items():
-                # Convert PIL image to NumPy Array image
-                section_bgr = cv2.cvtColor(np.asarray(section), cv2.COLOR_RGB2BGR)
-                hist = calculate_histogram(section_bgr)
-                if section_number not in section_histograms:
-                    section_histograms[section_number] = []
-                section_histograms[section_number].append(hist)
+            if segment_key in self.histogram_sums:
+                self.histogram_sums[segment_key] += hist
+                self.histogram_counts[segment_key] += 1
+            else:
+                # Use a copy to avoid modifying the original histogram later
+                self.histogram_sums[segment_key] = hist.copy()
+                self.histogram_counts[segment_key] = 1
 
-        # Compute the average histogram for each section using np.mean.
-        for section_number, hist_list in section_histograms.items():
-            average_section_hist = np.mean(hist_list, axis=0)
-            # print("av: ", average_section_hist)
-            # visualise_histogram(average_section_hist, title=f"Images averaged Section {section_number}")
-            self.average_histograms[section_number] = average_section_hist
+            # Update the average histogram for this segment
+            segment_channels_avg = []
+            for channel in self.histogram_sums[segment_key]:
+                segment_channels_avg.append(channel / self.histogram_counts[segment_key])
+
+            self.average_histograms[segment_key] = segment_channels_avg
 
     def compare_with_bucket(self, other_bucket):
         """
-        Compares this bucket with another bucket using histogram comparison.
+        Compares this bucket with another bucket by comparing the average histograms
+        for each common image segment.
 
         Args:
-            other_bucket (Bucket): Another bucket to compare histograms with.
+            other_bucket (Bucket): Another bucket to compare with.
 
         Returns:
-            float: Average similarity score across all sections.
+            float: The mean similarity score across all matching segments.
+                   Returns float('inf') if no valid histograms exist.
         """
         if not self.average_histograms or not other_bucket.average_histograms:
-            return float('inf')  # If no histograms, return a high value (no similarity)
+            return float('inf')  # High value when one bucket has no histogram data
 
         similarities = []
-        for section in self.average_histograms.keys():
-            if section in other_bucket.average_histograms:
+        # missing_segments = []
+        for segment_key in self.average_histograms.keys():
+            if segment_key in other_bucket.average_histograms:
                 similarity_score = compare_histograms(
-                    self.average_histograms[section],
-                    other_bucket.average_histograms[section]
+                    self.average_histograms[segment_key],
+                    other_bucket.average_histograms[segment_key]
                 )
                 similarities.append(similarity_score)
+            else:
+                # missing_segments.append(segment_key)
+                print(f"Missing segmented object {segment_key}")
+                # return float('inf')
 
         if similarities:
             return np.mean(similarities)
@@ -93,34 +95,40 @@ class Bucket:
 
     def merge_bucket(self, other_bucket):
         """
-        Merges another bucket into this bucket.
-        This function adds all ProcessedImage objects from the other bucket into this one
-        and updates the average histograms accordingly.
+        Merges another bucket into this one by extending the list of images and merging
+        the histogram data (sums and counts) so that the average histograms reflect the union.
 
         Args:
-            other_bucket (Bucket): The bucket to merge into this one.
+            other_bucket (Bucket): The bucket whose images and histograms are to be merged.
         """
-        # Extend the list of images with images from the other bucket.
+        # Extend images list
         self.images.extend(other_bucket.images)
-        # Recompute the average histograms to reflect the merged images.
-        self.update_average_histogram()
 
+        # Merge histogram sums and counts
+        for segment_key, other_sum in other_bucket.histogram_sums.items():
+            other_count = other_bucket.histogram_counts[segment_key]
+            if segment_key in self.histogram_sums:
+                self.histogram_sums[segment_key] += other_sum
+                self.histogram_counts[segment_key] += other_count
+            else:
+                self.histogram_sums[segment_key] = other_sum.copy()
+                self.histogram_counts[segment_key] = other_count
+
+            # Update the average histogram for the merged segment
+            segment_channels_avg = []
+            for channel in self.histogram_sums[segment_key]:
+                segment_channels_avg.append(channel / self.histogram_counts[segment_key])
+
+            self.average_histograms[segment_key] = segment_channels_avg
 
     def __str__(self):
         """
-        Returns a string representation of the bucket, listing image titles.
+        Returns a string representation of the bucket, listing the image file names.
         """
         if not self.images:
             return f"Bucket {self.bucket_id} is empty."
-
-        image_titles = []
-        for image in self.images:
-            image_titles.append(image.image_name)
-        return f"Bucket {self.bucket_id} contains images: \n- {'\n- '.join(image_titles)}"
-
+        image_titles = [image.image_name for image in self.images]
+        return f"Bucket {self.bucket_id} contains images:\n- " + "\n- ".join(image_titles)
 
     def __repr__(self):
-        """
-        Official string representation for debugging.
-        """
         return self.__str__()

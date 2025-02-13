@@ -5,6 +5,27 @@ import torch
 from PIL import Image
 from src.core.processed_image import ProcessedImage
 from src.core.bucket import Bucket
+# from src.utils.validation_utils import create_truth_buckets, evaluate_rank1
+
+
+def split_image_into_sections(extracted_person: Image.Image):
+    """
+    Splits the image into 4 equal vertical sections.
+
+    Returns:
+        dict: A dictionary containing 4 sections of the image with keys 1, 2, 3, and 4.
+    """
+    width, height = extracted_person.size
+    section_height = height // 4  # Divide the height into 4 equal parts
+    sections = {}
+
+    for i in range(4):
+        top = i * section_height  # Get the top y value of the current section
+        bottom = (i + 1) * section_height  # Get the bottom y value of the current section
+        cropped_section = extracted_person.crop((0, top, width, bottom))  # Crop to those y values
+        sections[f"section-{i}"] = cropped_section
+
+    return sections
 
 def get_closest_bucket(bucket_dict, current_bucket):
     """
@@ -40,8 +61,9 @@ def sort_buckets(bucket_dict):
     Args:
         bucket_dict (dict): Dictionary containing bucket_id mapped to Bucket objects.
     """
-
+    loops = 0
     while bucket_dict:
+
         # Take the first bucket from the dictionary
         current_bucket = bucket_dict.popitem()[1]
         print("----------------------")
@@ -51,7 +73,7 @@ def sort_buckets(bucket_dict):
         best_match, best_similarity = get_closest_bucket(bucket_dict, current_bucket)
 
         # Todo: Remove magic number
-        if best_similarity < 0.50:
+        if best_similarity < 0.36:
             print(
                 f"Best match for {current_bucket.bucket_id} is "
                 f"Bucket {best_match.bucket_id} (Similarity: {best_similarity:.2f})")
@@ -61,20 +83,21 @@ def sort_buckets(bucket_dict):
 
 
             # Pause and wait for user input before merging
-            input("\nPress Enter to merge these buckets...")
+            # input("\nPress Enter to merge these buckets...")
 
             # Merge the two buckets
             best_match.merge_bucket(current_bucket)
 
             # Show contents after merging
             print("\nBuckets merged! Best match bucket NOW contains:", best_match)
-
+            loops = 0
         else:
             print(f"\nNo suitable match found for Bucket {current_bucket.bucket_id}")
-
+            if loops >= len(bucket_dict):
+                return bucket_dict
+            loops += 1
         # Pause before continuing to the next step
-        input("\nPress Enter to continue to the next bucket...\n")
-
+        # input("\nPress Enter to continue to the next bucket...\n")
 
 def main(dataset_dir, model_path):
     # Load pretrained YOLO model
@@ -87,8 +110,11 @@ def main(dataset_dir, model_path):
             if file.lower().endswith((".jpg", ".jpeg", ".png")):
                 image_paths.append(os.path.join(root, file))
 
+    # test_path = "../datasets/Gen-test/1/idt001_cam00_rotz00_illu0004.png"
+
     # Run prediction on directory, filtering to only person class
-    results = model.predict(image_paths, classes=[0], device=torch.device("mps"), stream=True)
+    # retina_masks=True ensures masks are kept to the same resolution as the input image!
+    results = model.predict(image_paths, classes=[0], device=torch.device("mps"), stream=True, retina_masks=True)
 
     processed_images = []
 
@@ -104,9 +130,13 @@ def main(dataset_dir, model_path):
 
         # Extract person "object" from the original image, removing background
         extracted_image = extract_segmented_object(person_data["mask"], original_image)
+        extracted_image.save(os.path.join("../tests/systema", f"{image_name}"))
 
-        # Convert the extracted image into a processed image to give us sections
-        processed_image = ProcessedImage(result.path, extracted_image)
+        # Extract the segments from the image
+        segments = split_image_into_sections(extracted_image)
+
+        # Convert the extracted image into a custom processed image object
+        processed_image = ProcessedImage(result.path, extracted_image, segments)
         processed_images.append(processed_image)
 
     buckets = {}
@@ -115,10 +145,14 @@ def main(dataset_dir, model_path):
         bucket.add_image(processed_image)
         buckets[i] = bucket
 
-    sort_buckets(buckets)
+    predicted_buckets = sort_buckets(buckets)
+    # truth_buckets = create_truth_buckets(dataset_dir)
+    # evaluate_rank1(predicted_buckets, truth_buckets)
+
 
 
 if __name__ == '__main__':
     dataset_dir = "../datasets/Gen-test"
     model_path = "../Training/yolo11x-seg.pt"  # Use a segmentation-trained YOLO model
+    # model_path = "../Training/yolo11x-seg.mlpackage"  # Use a segmentation-trained YOLO model
     main(dataset_dir, model_path)
