@@ -3,6 +3,9 @@ from PIL import Image
 import numpy as np
 import torch
 
+from src.core.processed_segment import ProcessedSegment
+from typing import List
+
 def get_target_person(result):
     """
     Finds the largest segmented person mask in a YOLO result.
@@ -49,7 +52,6 @@ def get_target_person(result):
         "bounding_box": largest_box,
         "area": largest_area
     }
-
 
 def extract_segmented_object(mask, original_image):
     """
@@ -111,7 +113,7 @@ def is_connected(box1, box2, iou_threshold=0.1, distance_threshold=0.1):
     # Check IoU and distance thresholds
     return iou > iou_threshold or distance < distance_threshold
 
-def get_connected_objects(original_image, person_box, result, iou_threshold=0.1, distance_threshold=0.1):
+def get_connected_segments(original_image, person_box, result, iou_threshold=0.1, distance_threshold=0.1):
     """
     Extracts objects (e.g., clothing, accessories) connected to a detected person
     using bounding boxes and segmentation masks.
@@ -124,31 +126,33 @@ def get_connected_objects(original_image, person_box, result, iou_threshold=0.1,
         distance_threshold (float, optional): Distance threshold for refining connections. Default is 0.1.
 
     Returns:
-        dict: Mapping of detected object class names (e.g., "footwear", "bag")
-              to their segmented images (PIL.Image).
+         List[ProcessedSegment]: List of processed segments.
     """
     boxes = result.boxes  # Bounding boxes for detected objects
     class_names = result.names  # Class names from model
 
     tensor_person_box = torch.tensor([person_box], dtype=torch.float32)  # Convert to tensor
 
-    connected_objects = {}  # Store connected object details
+    processed_segments = []
+    # connected_objects = {}  # Store connected object details
 
     for i, box in enumerate(boxes):
         class_id = int(box.cls[0].item())  # Class ID of the detection
         class_name = class_names[class_id]  # Class name
+        bbox = box.xyxy[0].tolist()  # Bounding box coordinates [x1, y1, x2, y2]
 
         if class_name == "person":
             continue  # Skip the person itself
 
         # Get bounding box of current object
-        tensor_object_box = torch.tensor([box.xyxy[0].tolist()], dtype=torch.float32)
+        tensor_object_box = torch.tensor([bbox], dtype=torch.float32)
 
         # Check if object is connected to the person
         if is_connected(tensor_person_box, tensor_object_box, iou_threshold, distance_threshold):
             masks = result.masks.data  # Get mask tensors
-            mask = masks[i]  # Convert tensor mask to NumPy array
-            extracted_clothing_image = extract_segmented_object(mask, original_image)
-            connected_objects[class_name] = extracted_clothing_image
+            mask = masks[i]  # Extract the mask for the detected object
+            extracted_object_image = extract_segmented_object(mask, original_image)
 
-    return connected_objects
+            processed_segment = ProcessedSegment(extracted_object_image, class_id, class_name, box, mask)
+            processed_segments.append(processed_segment)
+    return processed_segments
