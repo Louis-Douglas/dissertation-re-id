@@ -1,26 +1,25 @@
 from ultralytics import YOLO
 
-from src.utils.histogram_utils import normalise_image, equalise_image, apply_clahe
 from src.utils.segmentation_utils import get_target_person, get_connected_segments
-from src.core.processed_segment import ProcessedSegment
 import os
 import torch
 from PIL import Image
 from src.core.processed_image import ProcessedImage
-from src.core.bucket import Bucket
-from src.utils.validation_utils import create_truth_buckets, evaluate_rank1
 import networkx as nx
-import numpy as np
 import matplotlib.pyplot as plt
-import community as community_louvain  # Louvain clustering
-from typing import List
 
-def group_images(image_list, merge_threshold=0.10):
+def group_images(image_list, merge_threshold=30.5):
     all_comparisons = []
     G = nx.Graph()
     for processed_image in image_list:
         name = processed_image.image_name
         G.add_node(name)
+
+    highest_true_match = 0
+    highest_match_str = ""
+    lowest_false_match = 100
+    lowest_match_str = ""
+
     # Compute pairwise similarities.
     for i in range(len(image_list)):
         for j in range(i + 1, len(image_list)):
@@ -28,6 +27,17 @@ def group_images(image_list, merge_threshold=0.10):
             i2 = image_list[j]
             sim = i1.compare_processed_image(i2)
             all_comparisons.append(f"{i1.image_name} & {i2.image_name} with similarity {sim}")
+            n1 = i1.image_name.split('_')[0]
+            n2 = i2.image_name.split('_')[0]
+            # print(f"{n1} & {n2} & {sim}")
+            if (n1 == n2) and (sim > highest_true_match):
+                highest_true_match = sim
+                highest_match_str = f"{i1.image_name} & {i2.image_name}"
+
+            if (n1 != n2) and (sim < lowest_false_match):
+                lowest_false_match = sim
+                lowest_match_str = f"{i1.image_name} & {i2.image_name}"
+
             if sim < merge_threshold:
                 G.add_edge(i1.image_name, i2.image_name, weight=sim)
 
@@ -40,6 +50,11 @@ def group_images(image_list, merge_threshold=0.10):
 
     for item in all_comparisons:
         print(item)
+
+    print("Highest true match:", highest_true_match)
+    print("Highest match:", highest_match_str)
+    print("Lowest false match:", lowest_false_match)
+    print("Lowest match:", lowest_match_str)
 
 
 def main(dataset_dir, moda_model_path, coco_model_path):
@@ -82,9 +97,9 @@ def main(dataset_dir, moda_model_path, coco_model_path):
 
         # Open the original image
         original_image = Image.open(result.path).convert("RGBA")
-        normalised_image = Image.fromarray(normalise_image(np.array(original_image)))
-        equalised_image = Image.fromarray(equalise_image(np.array(original_image)))
-        equalised_image = Image.fromarray(apply_clahe(np.array(equalised_image)))
+        # equalised_image = Image.fromarray(equalise_image(np.array(original_image)))
+        # equalised_image = Image.fromarray(apply_clahe(np.array(equalised_image)))
+        # normalised_image = Image.fromarray(normalise_image(np.array(equalised_image)))
 
         # Ensure the result contains masks
         if result.masks is None:
@@ -92,7 +107,7 @@ def main(dataset_dir, moda_model_path, coco_model_path):
 
         print(result.path)
 
-        processed_segments = get_connected_segments(equalised_image, related_person_box, result)
+        processed_segments = get_connected_segments(original_image, related_person_box, result)
 
         # Convert extracted clothing regions into a processed image
         processed_image = ProcessedImage(result.path, original_image, processed_segments)
@@ -103,7 +118,8 @@ def main(dataset_dir, moda_model_path, coco_model_path):
 
 
 if __name__ == '__main__':
-    dataset_dir = "../datasets/Gen-test2"
-    moda_model_path = "../Training/modanet-seg.pt"  # Use a YOLO model trained for clothing segmentation
+    # dataset_dir = "../datasets/Gen-test2"
+    dataset_dir = "../datasets/Custom-Gen"
+    moda_model_path = "../Training/modanet-seg2.pt"  # Use a YOLO model trained for clothing segmentation
     coco_model_path = "../Training/yolo11x-seg.pt"  # Use a YOLO model trained for person segmentation
     main(dataset_dir, moda_model_path, coco_model_path)

@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from src.utils.histogram_utils import compare_emd
+from src.utils.histogram_utils import compare_emd, compare_delta_e
 from src.utils.file_ops import save_image, ensure_directory_exists
 from src.core.processed_segment import ProcessedSegment
 import cv2
@@ -43,7 +43,7 @@ class ProcessedImage:
         return segments_by_class
 
 
-    def compare_processed_image(self, other_image, penalty=1.0, save_path="../tests/comparison_results"):
+    def compare_processed_image(self, other_image, penalty=10.0, save_path="../tests/comparison_results"):
         """
         Compares this ProcessedImage with another using a Hungarian matching scheme over object images.
 
@@ -84,6 +84,7 @@ class ProcessedImage:
                     for i, segment1 in enumerate(segment_list1):
                         for j, segment2 in enumerate(segment_list2):
                             cost_matrix[i, j] = compare_emd(segment1, segment2)
+                            # cost_matrix[i, j] = compare_delta_e(segment1.image, segment2.image)
 
 
                     # Solve using Hungarian Algorithm for best object matches
@@ -91,9 +92,9 @@ class ProcessedImage:
                     total_cost = cost_matrix[row_ind, col_ind].sum()
 
                     # Apply penalty for any unmatched objects
-                    # unmatched = abs(m - n)
-                    # total_cost += penalty * unmatched
-                    # avg_cost = total_cost / max(m, n)
+                    unmatched = abs(m - n)
+                    total_cost += penalty * unmatched
+                    avg_cost = total_cost / max(m, n)
                     avg_cost = total_cost / len(row_ind)
                     segment_similarities.append(avg_cost)
 
