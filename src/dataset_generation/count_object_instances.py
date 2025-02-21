@@ -46,7 +46,6 @@ def count_segmented_objects(image_dir, model_path="yolo11x-seg.mlpackage"):
         else:
             data = []
 
-        # Todo: Refactor this to remove need for total_class_counts
         for i, mask in enumerate(data):
             cls = result.boxes.data[i][-1]  # Get last element of bounding box data which is Class index
             class_name = class_names[int(cls)]
@@ -62,10 +61,16 @@ def count_segmented_objects(image_dir, model_path="yolo11x-seg.mlpackage"):
 
     return total_class_counts
 
-# Directory containing images
-image_directory = "../Market-1501-v15.09.15/bounding_box_train"
-model_path = "../../Training/yolo11x-seg.pt"  # Use a segmentation-trained YOLO model
+# Get the absolute path of the directory where THIS script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Define the project root (if script is in `src/`, go up one level)
+PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "../.."))
+
+# Now define paths relative to the project root
+MODEL_PATH = os.path.join(PROJECT_ROOT, "Training", "yolo11x-seg.pt")
+IMAGE_DIR = os.path.join(PROJECT_ROOT, "datasets", "Market-1501-v15.09.15", "bounding_box_train")
 
 # Run segmentation counting
-total_counts = count_segmented_objects(image_directory, model_path)
+total_counts = count_segmented_objects(IMAGE_DIR, MODEL_PATH)
 print("Total Segmented Objects:", total_counts)
