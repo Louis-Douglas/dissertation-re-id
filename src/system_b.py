@@ -7,6 +7,7 @@ from PIL import Image
 from src.core.processed_image import ProcessedImage
 import networkx as nx
 import matplotlib.pyplot as plt
+from src.utils.file_ops import clear_directory
 
 def group_images(image_list, merge_threshold=30.5):
     all_comparisons = []
@@ -20,12 +21,16 @@ def group_images(image_list, merge_threshold=30.5):
     lowest_false_match = 100
     lowest_match_str = ""
 
+    # Clear log output directory before running
+    log_output_directory = "../logs/comparison_results"
+    clear_directory(log_output_directory)
+
     # Compute pairwise similarities.
     for i in range(len(image_list)):
         for j in range(i + 1, len(image_list)):
             i1 = image_list[i]
             i2 = image_list[j]
-            sim = i1.compare_processed_image(i2)
+            sim = i1.compare_processed_image(i2, 10.0, log_output_directory)
             all_comparisons.append(f"{i1.image_name} & {i2.image_name} with similarity {sim}")
             n1 = i1.image_name.split('_')[0]
             n2 = i2.image_name.split('_')[0]

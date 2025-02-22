@@ -2,7 +2,7 @@ import os
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from src.utils.histogram_utils import compare_emd, compare_delta_e
-from src.utils.file_ops import ensure_directory_exists
+from src.utils.file_ops import ensure_directory_exists, save_comparison_image
 from src.core.processed_segment import ProcessedSegment
 import cv2
 from typing import List
@@ -18,7 +18,8 @@ class ProcessedImage:
             List[ProcessedSegment]: A list of segments extracted from the subject.
         """
         self.image_path = image_path
-        self.image_name = os.path.basename(image_path)  # Extracts just the filename
+        # self.image_name = os.path.basename(image_path)  # Extracts just the filename
+        self.image_name = os.path.splitext(os.path.basename(image_path))[0]
         self.extracted_person = extracted_person  # Store the extracted person image
         self.processed_segments = processed_segments  # List of segment objects
 
@@ -43,7 +44,7 @@ class ProcessedImage:
         return segments_by_class
 
 
-    def compare_processed_image(self, other_image, penalty=10.0, save_path="../tests/comparison_results"):
+    def compare_processed_image(self, other_image, penalty=10.0, save_path="../logs/comparison_results"):
         """
         Compares this ProcessedImage with another using a Hungarian matching scheme over object images.
 
@@ -87,14 +88,13 @@ class ProcessedImage:
                             # cost_matrix[i, j] = compare_delta_e(segment1.image, segment2.image)
 
 
-                    # Solve using Hungarian Algorithm for best object matches
+                    # Solve using Hungarian Algorithm for minimum weight and best object matches
                     row_ind, col_ind = linear_sum_assignment(cost_matrix)
                     total_cost = cost_matrix[row_ind, col_ind].sum()
 
                     # Apply penalty for any unmatched objects
                     unmatched = abs(m - n)
                     total_cost += penalty * unmatched
-                    avg_cost = total_cost / max(m, n)
                     avg_cost = total_cost / len(row_ind)
                     segment_similarities.append(avg_cost)
 
@@ -103,20 +103,19 @@ class ProcessedImage:
                     ensure_directory_exists(class_dir)
 
                     for (i, j) in zip(row_ind, col_ind):
-                        similarity_score = cost_matrix[i, j]
+                        similarity_score = round(float(cost_matrix[i, j]), 4)
                         log.write(
-                            f"Matched {class_name} {i} ({self.image_name}) with {class_name} {j} ({other_image.image_name}): Similarity = {similarity_score:.4f}\n")
+                            f"Matched {class_name} {i} ({self.image_name}) with {class_name} {j} ({other_image.image_name}): Similarity = {similarity_score}\n")
 
                         # Save matched segmented images
-                        segment_list1[i].image.save(os.path.join(class_dir, f"{class_name}_{self.image_name}_{i}.png"))
-                        segment_list2[j].image.save(os.path.join(class_dir, f"{class_name}_{other_image.image_name}_{j}.png"))
-
-                        # green issue
-                        lab1 = cv2.cvtColor(np.array(segment_list1[i].image), cv2.COLOR_RGB2LAB)
-                        cv2.imwrite(os.path.join(class_dir, f"{class_name}_{self.image_name}_{i}_mod.png"), lab1)
-                        lab2 = cv2.cvtColor(np.array(segment_list2[j].image), cv2.COLOR_RGB2LAB)
-                        cv2.imwrite(os.path.join(class_dir, f"{class_name}_{other_image.image_name}_{j}_mod.png"), lab2)
-
+                        save_comparison_image(
+                            segment_list1[i].image,
+                            segment_list2[j].image,
+                        class_name,
+                        os.path.join(class_dir, f"{self.image_name}_{i}_vs_{other_image.image_name}_{j}_.png"),
+                        similarity_score,
+                        self.image_name,
+                        other_image.image_name)
                     log.write("\n")
 
             # Compute final similarity score
