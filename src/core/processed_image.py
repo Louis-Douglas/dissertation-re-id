@@ -2,7 +2,7 @@ import os
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from src.utils.histogram_utils import compare_emd, compare_delta_e
-from src.utils.file_ops import save_image, ensure_directory_exists
+from src.utils.file_ops import ensure_directory_exists
 from src.core.processed_segment import ProcessedSegment
 import cv2
 from typing import List
@@ -108,8 +108,8 @@ class ProcessedImage:
                             f"Matched {class_name} {i} ({self.image_name}) with {class_name} {j} ({other_image.image_name}): Similarity = {similarity_score:.4f}\n")
 
                         # Save matched segmented images
-                        save_image(segment_list1[i].image, os.path.join(class_dir, f"{class_name}_{self.image_name}_{i}.png"))
-                        save_image(segment_list2[j].image, os.path.join(class_dir, f"{class_name}_{other_image.image_name}_{j}.png"))
+                        segment_list1[i].image.save(os.path.join(class_dir, f"{class_name}_{self.image_name}_{i}.png"))
+                        segment_list2[j].image.save(os.path.join(class_dir, f"{class_name}_{other_image.image_name}_{j}.png"))
 
                         # green issue
                         lab1 = cv2.cvtColor(np.array(segment_list1[i].image), cv2.COLOR_RGB2LAB)
