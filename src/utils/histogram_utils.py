@@ -96,7 +96,7 @@ def RGBA2LAB(image):
 
     return lab_image
 
-def extract_weighted_color_histogram(image, bins=32):
+def extract_weighted_color_histogram(image, bins=8):
     """
     Extracts a weighted LAB colour histogram signature for use in EMD.
     Only non-transparent pixels (alpha > 0) are considered.
