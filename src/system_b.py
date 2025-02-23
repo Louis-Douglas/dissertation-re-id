@@ -70,6 +70,7 @@ def main(dataset_dir, moda_model_path, coco_model_path):
         dataset_dir (str): Path to the dataset directory.
         moda_model_path (str): Path to the YOLO model file.
     """
+
     # Load Modanet trained YOLO model
     moda_model = YOLO(moda_model_path)
     coco_model = YOLO(coco_model_path)
@@ -89,6 +90,8 @@ def main(dataset_dir, moda_model_path, coco_model_path):
     for result in coco_results:
         target = get_target_person(result)
         person_to_box[result.path] = target["bounding_box"]
+        file_name = os.path.splitext(os.path.basename(result.path))[0]
+        result.save(os.path.join("../logs/inference_results", f"{file_name}_person.png"))
 
     # Run YOLO prediction, filtering for person
     moda_results = moda_model.predict(image_paths, device=torch.device("mps"), stream=True, retina_masks=True)
@@ -97,14 +100,12 @@ def main(dataset_dir, moda_model_path, coco_model_path):
     # Process results
     for result in moda_results:
         related_person_box = person_to_box[result.path]
-        image_name = os.path.basename(result.path)
+        image_name = os.path.splitext(os.path.basename(result.path))[0]
         print(f"Processing {image_name}")
+        result.save(os.path.join("../logs/inference_results", f"{image_name}_clothing.png"))
 
         # Open the original image
         original_image = Image.open(result.path).convert("RGBA")
-        # equalised_image = Image.fromarray(equalise_image(np.array(original_image)))
-        # equalised_image = Image.fromarray(apply_clahe(np.array(equalised_image)))
-        # normalised_image = Image.fromarray(normalise_image(np.array(equalised_image)))
 
         # Ensure the result contains masks
         if result.masks is None:
