@@ -230,7 +230,7 @@ def generate_prompts():
 
         # Randomise location and profile for each prompt generation
         location = random.choice(location_options)
-        profile = random.choice(profile_options)
+        profile = profile_options[i]
 
         prompt = "Generate a highly realistic, detailed photograph of a target person with the following attributes:\n"
         prompt += f"\n- Age: {attributes['Age']}"
