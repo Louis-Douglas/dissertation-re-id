@@ -1,13 +1,85 @@
-from ultralytics import YOLO
-
-from src.utils.segmentation_utils import get_target_person, get_connected_segments
-import os
-import torch
-from PIL import Image
-from src.core.processed_image import ProcessedImage
 import networkx as nx
 import matplotlib.pyplot as plt
 from src.utils.file_ops import clear_directory
+from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
+from scipy.spatial.distance import squareform
+from src.utils.segmentation_utils import get_processed_images, get_target_person, get_connected_segments
+import numpy as np
+from glob import glob
+
+def group_images_hierarchical(image_list, threshold=50, method='complete'):
+    """
+    Groups images hierarchically based on their pairwise similarity distances.
+
+    This function calculates a distance matrix from a list of images, performs
+    hierarchical clustering, and groups the images into clusters based on a
+    specified distance threshold. It also visualises the clustering using a
+    dendrogram.
+
+    Args:
+        image_list (list): A list of image objects.
+        threshold (float, optional): The distance threshold for cutting the
+            hierarchical clustering tree.
+        method (str, optional): The linkage method for hierarchical clustering..
+
+    Returns:
+        list: A list of sets, where each set represents a cluster of image names.
+    """
+    N = len(image_list)
+    # Build an NxN distance matrix
+    dist_matrix = np.zeros((N, N), dtype=np.float32)
+    for i in range(N):
+        for j in range(i+1, N):
+            # Gives similarity distance score (lower = better)
+            dist = image_list[i].compare_processed_image(image_list[j])
+            dist_matrix[i, j] = dist
+            dist_matrix[j, i] = dist
+
+    # Convert the NxN matrix into condensed form that only contains unique pairwise distances
+    condensed = squareform(dist_matrix, checks=False)
+
+    # Perform hierarchical clustering using scipy's linkage function
+    Z = linkage(condensed, method=method)
+
+    # Cut the tree at 'threshold' to get cluster labels
+    labels = fcluster(Z, t=threshold, criterion='distance')
+
+    # Group images by label
+    clusters_dict = {}
+    for idx, label in enumerate(labels):
+        # Check if label exists in the dictionary and initialise if empty
+        if label not in clusters_dict:
+            clusters_dict[label] = []
+        # Append the image name to the list corresponding to the label
+        clusters_dict[label].append(image_list[idx].image_name)
+
+    # Initialise an empty list to store cluster sets
+    clusters = []
+    # Iterate through each list of image names in clusters_dict
+    for images in clusters_dict.values():
+        image_set = set(images)  # Convert the list to a set
+        clusters.append(image_set)  # Add the set to the final list of clusters
+
+    # Loop and print the clusters for manual validation
+    print("Clusters:")
+    for cluster in clusters:
+        print(cluster)
+
+    # Initialise an empty list for labels
+    image_labels = []
+    for img in image_list:
+        image_labels.append(img.image_name)
+
+    # Visualise the clustering using scipy's dendrogram
+    plt.figure(figsize=(10, 5))
+    dendrogram(Z, labels=np.array(image_labels), color_threshold=threshold)
+    plt.axhline(y=threshold, color='r', linestyle='--', label=f"Threshold = {threshold}")
+    plt.title("Hierarchical Clustering Dendrogram")
+    plt.xlabel("Image Names")
+    plt.ylabel("Similarity Distance")
+    plt.legend()
+    plt.show()
+    return clusters
 
 def group_images(image_list, merge_threshold=30.5):
     all_comparisons = []
@@ -62,70 +134,26 @@ def group_images(image_list, merge_threshold=30.5):
     print("Lowest match:", lowest_match_str)
 
 
-def main(dataset_dir, moda_model_path, coco_model_path):
+def main():
     """
-    Runs the re-identification pipeline using a YOLO model for clothing-based segmentation.
+    Runs the re-identification pipeline using Modanet YOLO model for clothing-based segmentation and
+    COCO YOLO model for person extraction.
 
     Args:
         dataset_dir (str): Path to the dataset directory.
         moda_model_path (str): Path to the YOLO model file.
     """
+    # dataset_dir = "../datasets/Gen-test2"
+    dataset_dir = "../datasets/Custom-Gen"
+    gallery_image_paths = sorted(glob(f"{dataset_dir}/*/*.png") + glob(f"{dataset_dir}/*/*.jpg"))
+    moda_model_path = "../Training/modanet-seg2.pt"  # Use a YOLO model trained for clothing segmentation
+    coco_model_path = "../Training/yolo11x-seg.pt"  # Use a YOLO model trained for person segmentation
 
-    # Load Modanet trained YOLO model
-    moda_model = YOLO(moda_model_path)
-    coco_model = YOLO(coco_model_path)
-
-    # Collect all image paths
-    image_paths = [
-        os.path.join(root, file)
-        for root, _, files in os.walk(dataset_dir)
-        for file in files if file.lower().endswith((".jpg", ".jpeg", ".png"))
-    ]
-
-    # Run YOLO prediction, filtering for person
-    coco_results = coco_model.predict(image_paths, classes=[0], device=torch.device("mps"), stream=True, retina_masks=True)
-
-    person_to_box = {}
-
-    for result in coco_results:
-        target = get_target_person(result)
-        person_to_box[result.path] = target["bounding_box"]
-        file_name = os.path.splitext(os.path.basename(result.path))[0]
-        result.save(os.path.join("../logs/inference_results", f"{file_name}_person.png"))
-
-    # Run YOLO prediction, filtering for person
-    moda_results = moda_model.predict(image_paths, device=torch.device("mps"), stream=True, retina_masks=True)
-    processed_images = []
-
-    # Process results
-    for result in moda_results:
-        related_person_box = person_to_box[result.path]
-        image_name = os.path.splitext(os.path.basename(result.path))[0]
-        print(f"Processing {image_name}")
-        result.save(os.path.join("../logs/inference_results", f"{image_name}_clothing.png"))
-
-        # Open the original image
-        original_image = Image.open(result.path).convert("RGBA")
-
-        # Ensure the result contains masks
-        if result.masks is None:
-            continue
-
-        print(result.path)
-
-        processed_segments = get_connected_segments(original_image, related_person_box, result)
-
-        # Convert extracted clothing regions into a processed image
-        processed_image = ProcessedImage(result.path, original_image, processed_segments)
-        processed_images.append(processed_image)
-
-    group_images(processed_images)
+    processed_images = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path)
+    # group_images(processed_images)
+    group_images_hierarchical(processed_images)
 
 
 
 if __name__ == '__main__':
-    # dataset_dir = "../datasets/Gen-test2"
-    dataset_dir = "../datasets/Custom-Gen"
-    moda_model_path = "../Training/modanet-seg2.pt"  # Use a YOLO model trained for clothing segmentation
-    coco_model_path = "../Training/yolo11x-seg.pt"  # Use a YOLO model trained for person segmentation
-    main(dataset_dir, moda_model_path, coco_model_path)
+    main()

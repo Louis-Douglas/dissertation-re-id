@@ -1,11 +1,12 @@
-import PIL
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from colormath.color_objects import LabColor
 from colormath.color_diff import delta_e_cie2000
+from PIL import Image
 
+# Fixes a colormatch bug
 def patch_asscalar(a):
     return a.item()
 
@@ -352,11 +353,13 @@ def equalise_image(image):
     Equalise the brightness of an image
 
     Args:
-        image (numpy.ndarray): The input image in BGR format (as loaded by OpenCV).
+        image (PIL.Image.Image): The input image in RGBA format
 
     Returns:
-        numpy.ndarray: The normalised image in BGR format.
+        PIL.Image.Image: The normalised image in BGR format.
     """
+    image = np.array(image) # Convert to BGR array
+
     # Convert the image to HSV colour space to obtain the brightness channel
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -366,7 +369,7 @@ def equalise_image(image):
     # Convert back to BGR colour space
     eq_image = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)
 
-    return eq_image
+    return Image.fromarray(eq_image) # Convert back to PIL.Image
 
 
 def apply_clahe(image):
@@ -374,14 +377,20 @@ def apply_clahe(image):
     Applies CLAHE (Adaptive Histogram Equalisation) to the L channel of a LAB image.
 
     Args:
-        image (numpy.ndarray): Input BGR image.
+        image (PIL.Image.Image): Input BGR image.
 
     Returns:
-        numpy.ndarray: Image with equalised brightness while preserving colours.
+        PIL.Image.Image: Image with equalised brightness while preserving colours.
     """
+    image = np.array(image) # Convert to BGR array
+
+    # Convert image to LAB colour space
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+
+    # Enhances contrast locally by dividing the image into small regions.
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8)) # cliplimit prevents over-brightening
 
     lab[:, :, 0] = clahe.apply(lab[:, :, 0])  # Apply CLAHE to L channel
+    bgr_image = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR) # Convert back to BGR
 
-    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)  # Convert back to BGR
+    return Image.fromarray(bgr_image) # Convert back to PIL.Image
