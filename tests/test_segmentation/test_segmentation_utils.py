@@ -182,6 +182,16 @@ def test_get_connected_segments():
         obj_class_name = moda_results.names[obj_class_id]
         obj_bbox = obj.xyxy[0].tolist()  # [x1, y1, x2, y2]
 
+        person_bbox_draw = torch.tensor([person_bbox], dtype=torch.float32)
+        obj_bbox_draw = torch.tensor([obj_bbox], dtype=torch.float32)
+
+        draw_image = image_cv.copy()
+        draw_bounding_box(draw_image, person_bbox_draw.squeeze().tolist(), (0, 255, 0), "Person")
+        draw_bounding_box(draw_image, obj_bbox_draw.squeeze().tolist(), (255, 0, 0), f"{obj_class_name} - {box_iou(person_bbox_draw, obj_bbox_draw).item():.4f}")
+        # Compare visually
+        bbox_compare_output_path = os.path.join(output_dir, f"output_comparison_{obj_class_name}.png")
+        cv2.imwrite(bbox_compare_output_path, draw_image)
+
         # Check if this object is in one of the connected segments
         is_connected = False  # Initialise as False
         for seg in connected_segments:
@@ -224,12 +234,13 @@ def test_get_connected_segments():
         ("bag", [25.147689819335938, 464.5473327636719, 161.8079071044922, 604.21533203125]),
         ("top", [242.1937713623047, 163.2430419921875, 313.47381591796875, 354.104248046875]),
         ("headwear", [240.5162353515625, 90.83261108398438, 334.72723388671875, 166.4210205078125]),
-        ("outer", [564.1175537109375, 293.03289794921875, 607.0076904296875, 353.1461181640625]),
+        # ("outer", [564.1175537109375, 293.03289794921875, 607.0076904296875, 353.1461181640625]),
         ("bag", [242.06231689453125, 177.67501831054688, 275.65740966796875, 276.5303955078125]),
         ("top", [242.95523071289062, 343.4818420410156, 277.9419860839844, 367.9126892089844]),
         ("top", [253.90457153320312, 343.52691650390625, 277.3778381347656, 368.85626220703125]),  # Example: a "table" with these coordinates.
     ]
     truth_non_connected = [
+        ("outer", [564.1175537109375, 293.03289794921875, 607.0076904296875, 353.1461181640625]),
         ("outer", [563.9481811523438, 292.8067932128906, 609.5321655273438, 388.1569519042969]),
     ]
 

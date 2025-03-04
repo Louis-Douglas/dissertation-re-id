@@ -91,8 +91,7 @@ def extract_segmented_object(mask, original_image):
     return cropped_image
 
 
-# TODO: Setup unit test for if objects are connected and test against these thresholds to help fine tune
-def is_connected(box1, box2, iou_threshold=0.1, distance_threshold=0.1):
+def is_connected(box1, box2, iou_threshold=0):
     """
     Determines whether two bounding boxes are considered connected based on
     Intersection over Union (IoU) and center distance.
@@ -102,8 +101,6 @@ def is_connected(box1, box2, iou_threshold=0.1, distance_threshold=0.1):
         box2 (Tensor array): The second bounding box in the same format as box1.
         iou_threshold (float, optional): The minimum IoU required for boxes to be considered connected.
                                          Defaults to 0.1.
-        distance_threshold (float, optional): The maximum center distance allowed for boxes to be considered
-                                              connected. Defaults to 0.1.
 
     Returns:
         bool: True if the boxes are considered connected, False otherwise.
@@ -111,13 +108,10 @@ def is_connected(box1, box2, iou_threshold=0.1, distance_threshold=0.1):
     # Get intersection over union of the two boxes
     iou = box_iou(box1, box2)
 
-    # Calculate center distance between two boxes
-    distance = distance_box_iou(box1, box2)
+    # Return true if iou is above threshold
+    return iou > iou_threshold
 
-    # Check IoU and distance thresholds
-    return iou > iou_threshold or distance < distance_threshold
-
-def get_connected_segments(original_image, person_box, result, iou_threshold=0.1, distance_threshold=0.1):
+def get_connected_segments(original_image, person_box, result, iou_threshold=0.0):
     """
     Extracts objects (e.g., clothing, accessories) connected to a detected person
     using bounding boxes and segmentation masks.
@@ -152,7 +146,7 @@ def get_connected_segments(original_image, person_box, result, iou_threshold=0.1
         tensor_object_box = torch.tensor([bbox], dtype=torch.float32)
 
         # Check if object is connected to the person
-        if is_connected(tensor_person_box, tensor_object_box, iou_threshold, distance_threshold):
+        if is_connected(tensor_person_box, tensor_object_box, iou_threshold):
             masks = result.masks.data  # Get mask tensors
             mask = masks[i]  # Extract the mask for the detected object
             extracted_object_image = extract_segmented_object(mask, original_image)
