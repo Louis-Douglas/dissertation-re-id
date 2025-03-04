@@ -1,4 +1,5 @@
 import random
+import os
 
 # Define predetermined attribute options
 attributes_options = {
@@ -259,7 +260,23 @@ def generate_prompts():
 
 if __name__ == "__main__":
 
+    # Get last saved file
+    last_file = -1
+    files = os.listdir("prompts")
+    for file in files:
+        filename_without_extension = os.path.splitext(file)[0]
+        filename_num = int(filename_without_extension)
+        if filename_num > last_file:
+            last_file = filename_num
+
+    f = open(f"prompts/{last_file + 1}.txt", "a")
+    f.write("Seed: 160435\n")
     prompts_list = generate_prompts()
     for prompt in prompts_list:
+        f.write(prompt)
+        f.write("\n")
+        f.write("-" * 30)
+        f.write("\n")
         print(prompt)
         print("-" * 30)
+    f.close()
