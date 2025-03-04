@@ -18,6 +18,6 @@ class ProcessedSegment:
         self.class_name = class_name
         self.yolo_mask = mask
         # self.yolo_confidence = float(box.conf[0].item())  # Confidence score
-        # self.yolo_bbox = box.xyxy[0].tolist()
+        self.yolo_box = box
         self.hist = None
         self.colour_description = ""
