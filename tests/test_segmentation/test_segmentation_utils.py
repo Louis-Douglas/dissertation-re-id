@@ -117,11 +117,11 @@ def test_person_extraction(image_name):
         person_data = get_target_person(result)
 
         # Extract person by providing segmentation mask and original image
-        # extracted_image = extract_segmented_object(result.masks.data[0], original_image)
         extracted_image = extract_segmented_object(person_data["mask"], original_image)
         extracted_image.save(os.path.join(TEST_PERSON_EXTRACTION_IMAGES, "output", f"{image_name}"))
+
         # Uncomment to save extracted truth
-        # extracted_image.save(os.path.join("tests/test_images", image_name))
+        # extracted_image.save(os.path.join(TEST_PERSON_EXTRACTION_IMAGES, "truths", image_name))
 
         # Load the expected ground truth image
         ground_truth_path = os.path.join(TRUTH_PERSON_EXTRACTION_IMAGES, f"truth_{image_name}")
