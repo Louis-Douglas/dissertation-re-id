@@ -1,11 +1,12 @@
 import os
 import pytest
 from PIL import Image, ImageChops
+from pyasn1_modules.rfc7292 import bagtypes
 from ultralytics import YOLO
 import cv2
 import matplotlib.pyplot as plt
 import torch
-from src.utils.segmentation_utils import get_target_person, extract_segmented_object
+from src.utils.segmentation_utils import get_target_person, extract_segmented_object, get_connected_segments
 from torchvision.ops import box_iou
 
 # ----- get target person function -----
@@ -65,11 +66,11 @@ def test_get_target_person():
     inference_output_path = os.path.join(output_image_path, "inference.png")
     results.save(inference_output_path)
 
-    # Display image
-    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    plt.axis("off")
-    plt.title(f"IoU: {iou:.2f}")
-    plt.show()
+    # Debug display image
+    # plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    # plt.axis("off")
+    # plt.title(f"IoU: {iou:.2f}")
+    # plt.show()
 
     # Assert IoU threshold (e.g., IoU should be >= 0.5 for a match)
     assert iou >= 0.5, f"Detected person bounding box IoU ({iou:.2f}) is too low!"
@@ -130,3 +131,112 @@ def test_person_extraction(image_name):
 
         # Validate extracted image against ground truth
         assert images_are_similar(extracted_image, ground_truth_image), "Extracted image does not match ground truth"
+
+
+# ----- Test getting segments connected to person -----
+def test_get_connected_segments():
+    """Tests extracting objects connected to a person and separating non-connected items."""
+
+    main_image_dir = "images/connected_segments"
+    input_dir = os.path.join(main_image_dir, "input")
+    output_dir = os.path.join(main_image_dir, "output")
+
+    # Directories for saving the cropped outputs
+    connected_dir = os.path.join(output_dir, "connected_items")
+    non_connected_dir = os.path.join(output_dir, "non_connected_items")
+    os.makedirs(connected_dir, exist_ok=True)
+    os.makedirs(non_connected_dir, exist_ok=True)
+
+    # Load the YOLO models
+    modanet_model_path = "../modanet-seg.pt"
+    moda_model = YOLO(modanet_model_path)
+
+    coco_model_path = "../yolo11x-seg.pt"
+    coco_model = YOLO(coco_model_path)
+
+    image_name = "test_image_1"
+    input_image_path = os.path.join(input_dir, f"{image_name}.png")
+
+    # Load image using both OpenCV and PIL as needed
+    image_cv = cv2.imread(input_image_path)
+    image_pil = Image.open(input_image_path).convert("RGBA")
+
+    # Run YOLO inference
+    coco_results = coco_model(image_cv)[0]
+    moda_results = moda_model(image_cv)[0]
+
+    # Get the target person bounding box using the coco model results
+    target_person = get_target_person(coco_results)
+    if target_person is None:
+        raise AssertionError(f"No person detected in {image_name}!")
+    person_bbox = target_person["bounding_box"]
+
+    # Get connected segments from the PIL image, person bounding box, and moda model results
+    connected_segments = get_connected_segments(image_pil, person_bbox, moda_results)
+
+    # Separate objects into connected and non-connected lists
+    connected_items = []
+    non_connected_items = []
+    for obj in moda_results.boxes:
+        obj_class_id = int(obj.cls[0].item())
+        obj_class_name = moda_results.names[obj_class_id]
+        obj_bbox = obj.xyxy[0].tolist()  # [x1, y1, x2, y2]
+
+        # Check if this object is in one of the connected segments
+        is_connected = False  # Initialise as False
+        for seg in connected_segments:
+            if seg.yolo_box.xyxy[0].tolist() == obj_bbox:
+                is_connected = True  # If any segment matches the bbox, mark as connected
+                break  # Exit loop early since we found a match
+
+        if is_connected:
+            connected_items.append((obj_class_name, obj_bbox))
+        else:
+            non_connected_items.append((obj_class_name, obj_bbox))
+
+    # Crop and save the connected items
+    for i, (class_name, bbox) in enumerate(connected_items):
+        x1, y1, x2, y2 = map(int, bbox)
+        cropped = image_cv[y1:y2, x1:x2]
+        connected_img_path = os.path.join(connected_dir, f"{class_name}_connected_{i}_{image_name}.png")
+        cv2.imwrite(connected_img_path, cropped)
+        print(f"Saved connected item: {class_name} to {connected_img_path} with bbox: {bbox}")
+
+    # Crop and save the non-connected items
+    for i, (class_name, bbox) in enumerate(non_connected_items):
+        x1, y1, x2, y2 = map(int, bbox)
+        cropped = image_cv[y1:y2, x1:x2]
+        non_connected_img_path = os.path.join(non_connected_dir, f"{class_name}_non_connected_{i}_{image_name}.png")
+        cv2.imwrite(non_connected_img_path, cropped)
+        print(f"Saved non-connected item: {class_name} to {non_connected_img_path} with bbox: {bbox}")
+
+    # Save modanet results for visual verification
+    inference_output_path = os.path.join(output_dir, f"moda_inference_{image_name}.png")
+    moda_results.save(inference_output_path)
+
+    # Expected truth bounding boxes for connected and non-connected items.
+    truth_connected = [
+        ("pants", [155.6253662109375, 343.0889892578125, 341.788818359375, 583.724365234375]),
+        ("footwear", [141.73104858398438, 557.96826171875, 221.24917602539062, 611.35986328125]),
+        ("footwear", [311.79132080078125, 572.38720703125, 398.71673583984375, 613.7119140625]),
+        ("bag", [157.1688232421875, 203.13552856445312, 217.32672119140625, 341.4526672363281]),
+        ("outer", [185.982666015625, 170.40908813476562, 284.4220275878906, 384.4436950683594]),
+        ("bag", [25.147689819335938, 464.5473327636719, 161.8079071044922, 604.21533203125]),
+        ("top", [242.1937713623047, 163.2430419921875, 313.47381591796875, 354.104248046875]),
+        ("headwear", [240.5162353515625, 90.83261108398438, 334.72723388671875, 166.4210205078125]),
+        ("outer", [564.1175537109375, 293.03289794921875, 607.0076904296875, 353.1461181640625]),
+        ("bag", [242.06231689453125, 177.67501831054688, 275.65740966796875, 276.5303955078125]),
+        ("top", [242.95523071289062, 343.4818420410156, 277.9419860839844, 367.9126892089844]),
+        ("top", [253.90457153320312, 343.52691650390625, 277.3778381347656, 368.85626220703125]),  # Example: a "table" with these coordinates.
+    ]
+    truth_non_connected = [
+        ("outer", [563.9481811523438, 292.8067932128906, 609.5321655273438, 388.1569519042969]),
+    ]
+
+    # Check if the results match the truth.
+    assert connected_items == truth_connected, (
+        f"Connected items do not match truth:\nDetected: {connected_items}\nExpected: {truth_connected}"
+    )
+    assert non_connected_items == truth_non_connected, (
+        f"Non-connected items do not match truth:\nDetected: {non_connected_items}\nExpected: {truth_non_connected}"
+    )
