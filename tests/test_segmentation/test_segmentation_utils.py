@@ -1,13 +1,24 @@
 import os
 import pytest
 from PIL import Image, ImageChops
-from pyasn1_modules.rfc7292 import bagtypes
+# from pyasn1_modules.rfc7292 import bagtypes
 from ultralytics import YOLO
 import cv2
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import torch
-from src.utils.segmentation_utils import get_target_person, extract_segmented_object, get_connected_segments
+
+from src.core.processed_image import ProcessedImage
+from src.utils.segmentation_utils import (
+    get_target_person,
+    extract_segmented_object,
+    get_connected_segments,
+    get_processed_images)
+
 from torchvision.ops import box_iou
+
+# Define YOLO model paths
+COCO_MODEL_PATH = "../yolo11x-seg.pt"
+MODANET_MODEL_PATH = "../modanet-seg.pt"
 
 # ----- get target person function -----
 
@@ -29,10 +40,10 @@ def test_get_target_person():
     input_image_path = os.path.join(main_image_dir, "input/test_image.png")
     output_image_path = os.path.join(main_image_dir, "output")
     ground_truth_bbox = [203.9024,  40.6577, 389.4435, 634.5903]
-    model_path = "../yolo11x-seg.pt"
+    # model_path = "../yolo11x-seg.pt"
 
     # Load YOLO model
-    model = YOLO(model_path)
+    model = YOLO(COCO_MODEL_PATH)
 
     # Load image
     image = load_image(input_image_path)
@@ -105,7 +116,7 @@ def test_person_extraction(image_name):
     assert os.path.exists(test_image_path), f"Test image {test_image_path} not found"
 
     # Load pretrained YOLO model
-    model = YOLO("../yolo11x-seg.pt")
+    model = YOLO(COCO_MODEL_PATH)
 
     # Run prediction on test image patch, filtering to only person class, (mps enabled for MACOS)
     results = model.predict(test_image_path, classes=[0], device=torch.device("mps"), stream=True, retina_masks=True)
@@ -148,11 +159,8 @@ def test_get_connected_segments():
     os.makedirs(non_connected_dir, exist_ok=True)
 
     # Load the YOLO models
-    modanet_model_path = "../modanet-seg.pt"
-    moda_model = YOLO(modanet_model_path)
-
-    coco_model_path = "../yolo11x-seg.pt"
-    coco_model = YOLO(coco_model_path)
+    moda_model = YOLO(MODANET_MODEL_PATH)
+    coco_model = YOLO(COCO_MODEL_PATH)
 
     image_name = "test_image_1"
     input_image_path = os.path.join(input_dir, f"{image_name}.png")
@@ -251,3 +259,48 @@ def test_get_connected_segments():
     assert non_connected_items == truth_non_connected, (
         f"Non-connected items do not match truth:\nDetected: {non_connected_items}\nExpected: {truth_non_connected}"
     )
+
+
+# ----- Test get processed images -----
+
+@pytest.mark.parametrize("image_name", ["test_image_1.png", "test_image_2.png"])
+def test_get_processed_images(image_name):
+    """Tests get_processed_images by verifying output structure and saving inference results."""
+    # Define test image directory
+    test_image_dir = "images/get_processed/input"
+    test_output_dir = "images/get_processed/output"
+
+    # Prepare image paths
+    input_image_path = os.path.join(test_image_dir, image_name)
+    assert os.path.exists(input_image_path), f"Test image {input_image_path} not found!"
+
+    # Run `get_processed_images`
+    processed_images = get_processed_images([input_image_path], COCO_MODEL_PATH, MODANET_MODEL_PATH)
+
+    # Check function output
+    assert isinstance(processed_images, list), "get_processed_images did not return a list!"
+    assert len(processed_images) > 0, "No processed images were returned!"
+
+    # Check each returned `ProcessedImage`
+    for processed_image in processed_images:
+        assert isinstance(processed_image, ProcessedImage), "Output is not a ProcessedImage instance!"
+        assert processed_image.image_path == input_image_path, "Processed image path mismatch!"
+        assert processed_image.extracted_person is not None, "Extracted person image is missing!"
+        assert isinstance(processed_image.processed_segments, list), "Processed segments must be a list!"
+
+        # Save processed image for visual verification
+        output_image_path = os.path.join(test_output_dir, f"processed_{image_name}")
+        os.makedirs(test_output_dir, exist_ok=True)
+        processed_image.extracted_person.save(output_image_path)
+        print(f"Saved processed person image: {output_image_path}")
+
+        # Verify that at least one object segment is extracted
+        assert len(processed_image.processed_segments) > 0, "No connected object segments detected!"
+
+        # Save segment images for debugging
+        for i, segment in enumerate(processed_image.processed_segments):
+            segment_output_path = os.path.join(test_output_dir, f"segment_{i}_{image_name}")
+            segment.image.save(segment_output_path)
+            print(f"Saved segment {i}: {segment_output_path}")
+
+    print(f"Test passed for {image_name}!")
