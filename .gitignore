@@ -26,3 +26,6 @@ Training/
 Datasets/
 Runs/
 Logs/
+
+# Dont save personal cookies from selenium testing
+cookies.pkl
