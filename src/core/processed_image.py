@@ -4,23 +4,21 @@ from scipy.optimize import linear_sum_assignment
 from src.utils.histogram_utils import compare_emd, compare_delta_e
 from src.utils.file_ops import ensure_directory_exists, save_comparison_image
 from src.core.processed_segment import ProcessedSegment
-import cv2
 from typing import List
 
 class ProcessedImage:
-    def __init__(self, image_path, extracted_person, processed_segments: List[ProcessedSegment]):
+    def __init__(self, image_path, original_image, processed_segments: List[ProcessedSegment]):
         """
         Initialises a ProcessedImage object.
 
         Args:
             image_path (str): Path to the image file.
-            extracted_person (PIL.Image.image): Image of person extracted from the background.
+            original_image (PIL.Image.image): Original image.
             List[ProcessedSegment]: A list of segments extracted from the subject.
         """
         self.image_path = image_path
-        # self.image_name = os.path.basename(image_path)  # Extracts just the filename
         self.image_name = os.path.splitext(os.path.basename(image_path))[0]
-        self.extracted_person = extracted_person  # Store the extracted person image
+        self.original_image = original_image  # Store the extracted person image
         self.processed_segments = processed_segments  # List of segment objects
 
     def sort_processed_segments(self, segments: List[ProcessedSegment]):
