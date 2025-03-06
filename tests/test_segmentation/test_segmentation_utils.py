@@ -8,6 +8,7 @@ import cv2
 import torch
 
 from src.core.processed_image import ProcessedImage
+from src.core.processed_segment import ProcessedSegment
 from src.utils.segmentation_utils import (
     get_target_person,
     extract_segmented_object,
@@ -285,13 +286,13 @@ def test_get_processed_images(image_name):
     for processed_image in processed_images:
         assert isinstance(processed_image, ProcessedImage), "Output is not a ProcessedImage instance!"
         assert processed_image.image_path == input_image_path, "Processed image path mismatch!"
-        assert processed_image.extracted_person is not None, "Extracted person image is missing!"
+        assert processed_image.original_image is not None, "Original image is missing!"
         assert isinstance(processed_image.processed_segments, list), "Processed segments must be a list!"
 
         # Save processed image for visual verification
         output_image_path = os.path.join(test_output_dir, f"processed_{image_name}")
         os.makedirs(test_output_dir, exist_ok=True)
-        processed_image.extracted_person.save(output_image_path)
+        processed_image.original_image.save(output_image_path)
         print(f"Saved processed person image: {output_image_path}")
 
         # Verify that at least one object segment is extracted
@@ -304,3 +305,37 @@ def test_get_processed_images(image_name):
             print(f"Saved segment {i}: {segment_output_path}")
 
     print(f"Test passed for {image_name}!")
+
+
+# ----- Test sorting processed segments -----
+
+def test_sort_processed_segments():
+    """Tests that sort_processed_segments correctly groups segments by class name."""
+
+    # Create mock segments with different class names
+    segment1 = ProcessedSegment(image=None, class_id=1, class_name="shirt", box=None, mask=None)
+    segment2 = ProcessedSegment(image=None, class_id=2, class_name="pants", box=None, mask=None)
+    segment3 = ProcessedSegment(image=None, class_id=1, class_name="shirt", box=None, mask=None)
+    segment4 = ProcessedSegment(image=None, class_id=3, class_name="bag", box=None, mask=None)
+
+    # Group segments in a list
+    segments = [segment1, segment2, segment3, segment4]
+
+    # Create a dummy ProcessedImage instance
+    processed_image = ProcessedImage(image_path="test.png", original_image=None, processed_segments=[])
+
+    # Run the function
+    sorted_segments = processed_image.sort_processed_segments(segments)
+
+    # Verify output structure
+    assert isinstance(sorted_segments, dict), "Output should be a dictionary!"
+    assert "shirt" in sorted_segments, "Shirt class is missing!"
+    assert "pants" in sorted_segments, "Pants class is missing!"
+    assert "bag" in sorted_segments, "Bag class is missing!"
+
+    # Verify correct segment grouping
+    assert len(sorted_segments["shirt"]) == 2, "Shirt should have 2 segments!"
+    assert len(sorted_segments["pants"]) == 1, "Pants should have 1 segment!"
+    assert len(sorted_segments["bag"]) == 1, "Bag should have 1 segment!"
+
+    print("Test passed: sort_processed_segments correctly groups segments by class!")
