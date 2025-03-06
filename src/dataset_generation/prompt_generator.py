@@ -1,5 +1,6 @@
 import random
 import os
+from glob import glob
 
 # Define predetermined attribute options
 attributes_options = {
@@ -259,24 +260,35 @@ def generate_prompts():
     return prompts
 
 if __name__ == "__main__":
+    dataset_dir = "../../datasets/Ethical-original"
+    # Ensure "prompts" directory exists
+    os.makedirs(dataset_dir, exist_ok=True)
 
-    # Get last saved file
-    last_file = -1
-    files = os.listdir("prompts")
-    for file in files:
-        filename_without_extension = os.path.splitext(file)[0]
-        filename_num = int(filename_without_extension)
-        if filename_num > last_file:
-            last_file = filename_num
+    # Get last numbered folder
+    last_num = 0
+    existing_dirs = sorted(glob(os.path.join(dataset_dir, "*/")))  # Ensures only directories are listed
 
-    f = open(f"prompts/{last_file + 1}.txt", "a")
-    f.write("Seed: 160435\n")
-    prompts_list = generate_prompts()
-    for prompt in prompts_list:
-        f.write(prompt)
-        f.write("\n")
-        f.write("-" * 30)
-        f.write("\n")
-        print(prompt)
-        print("-" * 30)
-    f.close()
+    for folder in existing_dirs:
+        if folder.isdigit():  # Ensure the folder name is a number
+            folder_num = int(folder)
+            last_num = max(last_num, folder_num)
+
+    # Create new folder with the next number (0001, 0002, ...)
+    new_folder_name = str(last_num + 1).zfill(4)
+    new_folder_path = os.path.join(dataset_dir, new_folder_name)
+    os.makedirs(new_folder_path, exist_ok=True)
+
+    # Create prompt file inside the new folder
+    prompt_file_path = os.path.join(new_folder_path, f"{int(new_folder_name)}.txt")
+
+    with open(prompt_file_path, "w") as f:
+        f.write("Seed: 160435\n")  # Example seed
+        prompts_list = generate_prompts()
+
+        for prompt in prompts_list:
+            f.write(prompt + "\n")
+            f.write("-" * 30 + "\n")
+            print(prompt)
+            print("-" * 30)
+
+    print(f"Prompts saved in: {prompt_file_path}")
