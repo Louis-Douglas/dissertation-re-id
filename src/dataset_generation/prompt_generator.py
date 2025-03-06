@@ -112,18 +112,18 @@ profile_options = [
 #     "Park - A serene park with lush greenery, a small pond, and benches scattered along winding paths. The weather is overcast.  Lighting is soft and even.",
 # ]
 
-general_location_options = [
-    "Shopping Centre Hallways: A spacious modern mall with polished tiled floors that reflect bright, evenly distributed ceiling lights. Large glass storefronts display mannequins and promotional banners. Potted plants and sleek benches line the walkways, while shoppers stroll through, some carrying branded bags or window-shopping. The lighting is soft and even, ensuring clear visibility throughout the space.",
-    "Airport Terminals: A high-traffic international airport corridor with large glass windows allowing in diffused natural daylight. The floor is polished stone, subtly reflecting overhead recessed lighting. Digital flight boards, check-in counters, and waiting passengers with rolling suitcases create a dynamic atmosphere. The lighting remains soft and even, blending natural and artificial illumination seamlessly.",
-    "Stadium Hallways: A wide, enclosed stadium concourse with bright LED overhead lights providing soft, even illumination. The floor is non-reflective commercial tile, and the walls are adorned with team banners and event posters. Fans in jerseys walk through, some carrying drinks and snacks, while security personnel stand at various points. The lighting is consistent and evenly distributed, preventing harsh shadows.",
-    "Convention Centres: A sleek, upscale convention centre hallway with neutral-toned carpet and floor-to-ceiling glass walls letting in soft daylight. Overhead LED panel lighting ensures consistent, shadow-free illumination. Digital kiosks display event schedules while professionals in business attire walk between conference halls and networking areas. The entire space is bathed in soft, even lighting for a modern and professional ambiance.",
-    "University Campuses: A spacious university hallway with smooth, matte-finish floors and walls lined with bulletin boards and digital screens displaying schedules. Large windows diffuse soft natural daylight, blending with recessed ceiling lights for a balanced illumination. Students walk through carrying backpacks, engaged in quiet discussions or checking their phones. The lighting is uniformly soft, creating a comfortable academic atmosphere.",
-    "Metro & Train Stations: A bustling underground metro station corridor with bright, even fluorescent lighting. The floors are lightly textured, non-slip tiles with directional signage leading to platforms. Digital billboards display train arrival times as commuters walk briskly, some carrying backpacks or holding transit cards. The lighting is soft and evenly spread, ensuring clear visibility across the station.",
-    "Government Buildings: A large, high-security government lobby with polished stone floors and floor-to-ceiling glass panels. The ceiling features recessed LED lights ensuring soft, even illumination. Turnstiles, metal detectors, and security checkpoints are visible, with people lining up for entry. The lighting is bright yet diffused, preventing any harsh highlights or deep shadows.",
-    "Corporate Offices: A modern office hallway with frosted glass partitions, matte-finish flooring, and a neutral color scheme. Recessed LED lighting provides even brightness, preventing shadows. Employees in business attire walk through, some engaged in conversation while others check their devices. The lighting is perfectly soft and evenly distributed, enhancing the clean and professional aesthetic.",
-    "Hospitals: A clean hospital corridor with glossy but non-glare flooring and soft LED lighting fixtures ensuring uniform brightness. Patient rooms, nurse stations, and emergency exit signs line the hallway. Doctors, nurses, and visitors move through the space, carrying medical files or pushing carts. The lighting is soft and evenly spread, creating a sterile yet welcoming environment.",
-    "Parking Garages: A modern indoor parking structure with bright, evenly spaced LED lights eliminating dark corners. The floors are smooth concrete, with painted directional arrows and designated pedestrian walkways. Security cameras are mounted at key entry and exit points, and occasional parked cars are visible. The lighting is evenly distributed, preventing dark spots and enhancing security visibility."
-]
+# general_location_options = [
+#     "Shopping Centre Hallways: A spacious modern mall with polished tiled floors that reflect bright, evenly distributed ceiling lights. Large glass storefronts display mannequins and promotional banners. Potted plants and sleek benches line the walkways, while shoppers stroll through, some carrying branded bags or window-shopping. The lighting is soft and even, ensuring clear visibility throughout the space.",
+#     "Airport Terminals: A high-traffic international airport corridor with large glass windows allowing in diffused natural daylight. The floor is polished stone, subtly reflecting overhead recessed lighting. Digital flight boards, check-in counters, and waiting passengers with rolling suitcases create a dynamic atmosphere. The lighting remains soft and even, blending natural and artificial illumination seamlessly.",
+#     "Stadium Hallways: A wide, enclosed stadium concourse with bright LED overhead lights providing soft, even illumination. The floor is non-reflective commercial tile, and the walls are adorned with team banners and event posters. Fans in jerseys walk through, some carrying drinks and snacks, while security personnel stand at various points. The lighting is consistent and evenly distributed, preventing harsh shadows.",
+#     "Convention Centres: A sleek, upscale convention centre hallway with neutral-toned carpet and floor-to-ceiling glass walls letting in soft daylight. Overhead LED panel lighting ensures consistent, shadow-free illumination. Digital kiosks display event schedules while professionals in business attire walk between conference halls and networking areas. The entire space is bathed in soft, even lighting for a modern and professional ambiance.",
+#     "University Campuses: A spacious university hallway with smooth, matte-finish floors and walls lined with bulletin boards and digital screens displaying schedules. Large windows diffuse soft natural daylight, blending with recessed ceiling lights for a balanced illumination. Students walk through carrying backpacks, engaged in quiet discussions or checking their phones. The lighting is uniformly soft, creating a comfortable academic atmosphere.",
+#     "Metro & Train Stations: A bustling underground metro station corridor with bright, even fluorescent lighting. The floors are lightly textured, non-slip tiles with directional signage leading to platforms. Digital billboards display train arrival times as commuters walk briskly, some carrying backpacks or holding transit cards. The lighting is soft and evenly spread, ensuring clear visibility across the station.",
+#     "Government Buildings: A large, high-security government lobby with polished stone floors and floor-to-ceiling glass panels. The ceiling features recessed LED lights ensuring soft, even illumination. Turnstiles, metal detectors, and security checkpoints are visible, with people lining up for entry. The lighting is bright yet diffused, preventing any harsh highlights or deep shadows.",
+#     "Corporate Offices: A modern office hallway with frosted glass partitions, matte-finish flooring, and a neutral color scheme. Recessed LED lighting provides even brightness, preventing shadows. Employees in business attire walk through, some engaged in conversation while others check their devices. The lighting is perfectly soft and evenly distributed, enhancing the clean and professional aesthetic.",
+#     "Hospitals: A clean hospital corridor with glossy but non-glare flooring and soft LED lighting fixtures ensuring uniform brightness. Patient rooms, nurse stations, and emergency exit signs line the hallway. Doctors, nurses, and visitors move through the space, carrying medical files or pushing carts. The lighting is soft and evenly spread, creating a sterile yet welcoming environment.",
+#     "Parking Garages: A modern indoor parking structure with bright, evenly spaced LED lights eliminating dark corners. The floors are smooth concrete, with painted directional arrows and designated pedestrian walkways. Security cameras are mounted at key entry and exit points, and occasional parked cars are visible. The lighting is evenly distributed, preventing dark spots and enhancing security visibility."
+# ]
 
 location_options = [
     "Check-in Area: A spacious airport check-in area with sleek tiled flooring and bright, evenly distributed lighting. Digital flight information screens hang from the ceiling, displaying departure times. Airline check-in counters with self-service kiosks are arranged in neat rows. Travelers with rolling suitcases wait in line, some scanning passports while others interact with airline staff. The lighting is soft and diffused, ensuring a bright but shadow-free environment.",
@@ -261,16 +261,19 @@ def generate_prompts():
 
 if __name__ == "__main__":
     dataset_dir = "../../datasets/Ethical-original"
-    # Ensure "prompts" directory exists
+    # Ensure dataset directory exists
     os.makedirs(dataset_dir, exist_ok=True)
 
     # Get last numbered folder
     last_num = 0
     existing_dirs = sorted(glob(os.path.join(dataset_dir, "*/")))  # Ensures only directories are listed
 
-    for folder in existing_dirs:
-        if folder.isdigit():  # Ensure the folder name is a number
-            folder_num = int(folder)
+    for folder_path in existing_dirs:
+        folder_path = os.path.normpath(folder_path)
+        folder_name = os.path.basename(folder_path)
+
+        if folder_name.isdigit():  # Ensure the folder name is a number
+            folder_num = int(folder_name)
             last_num = max(last_num, folder_num)
 
     # Create new folder with the next number (0001, 0002, ...)
