@@ -5,11 +5,12 @@ from src.utils.validation_utils import evaluate_rank_map, visualize_reid_results
 from src.utils.segmentation_utils import get_processed_images
 
 def main():
-    query_image_paths = sorted(glob.glob("../datasets/Torch-Dataset/query/*/*.png"))
-    gallery_image_paths = sorted(glob.glob("../datasets/Torch-Dataset/gallery/*/*.png"))
+    save_logs = False
+    query_image_paths = sorted(glob.glob("../datasets/system_b/query/*/*.png"))
+    gallery_image_paths = sorted(glob.glob("../datasets/system_b/gallery/*/*.png"))
 
-    moda_model_path = "../Training/modanet-seg2.pt"  # Use a YOLO model trained for clothing segmentation
-    coco_model_path = "../Training/yolo11x-seg.pt"  # Use a YOLO model trained for person segmentation
+    moda_model_path = "../Training/modanet-seg-30.mlpackage"  # Use a YOLO model trained for clothing segmentation
+    coco_model_path = "../Training/yolo11n-seg.mlpackage"  # Use a YOLO model trained for person segmentation
 
     query_image_files = get_processed_images(query_image_paths, coco_model_path, moda_model_path)
     gallery_image_files = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path)
@@ -23,7 +24,7 @@ def main():
     # Fill in similarity values
     for i, query_img in enumerate(query_image_files):
         for j, gallery_img in enumerate(gallery_image_files):
-            dist = query_img.compare_processed_image(gallery_img)  # Your similarity function
+            dist = query_img.compare_processed_image(gallery_img, save_logs)  # Your similarity function
             dist_matrix[i, j] = dist  # Assign the similarity score
 
     # Convert to numpy
