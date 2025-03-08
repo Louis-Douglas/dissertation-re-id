@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from src.utils.file_ops import clear_directory
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from scipy.spatial.distance import squareform
-from src.utils.segmentation_utils import get_processed_images, get_target_person, get_connected_segments
+from src.utils.segmentation_utils import get_processed_images
 import numpy as np
 from glob import glob
 
@@ -146,7 +146,7 @@ def main():
     # dataset_dir = "../datasets/Gen-test2"
     dataset_dir = "../datasets/Custom-Gen"
     gallery_image_paths = sorted(glob(f"{dataset_dir}/*/*.png") + glob(f"{dataset_dir}/*/*.jpg"))
-    moda_model_path = "../Training/modanet-seg2.pt"  # Use a YOLO model trained for clothing segmentation
+    moda_model_path = "../Training/modanet-seg-30.pt"  # Use a YOLO model trained for clothing segmentation
     coco_model_path = "../Training/yolo11x-seg.pt"  # Use a YOLO model trained for person segmentation
 
     processed_images = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path)
