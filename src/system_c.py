@@ -14,7 +14,7 @@ torchreid.data.register_image_dataset('ethical_reid_dataset', EthicalDataset)
 
 # Data manager
 datamanager = torchreid.data.ImageDataManager(
-    root='../datasets/Torch-Dataset', # The root directory of your dataset
+    root='../datasets/system_c', # The root directory of your dataset
     sources='ethical_reid_dataset',  # Indicate custom dataset
     targets='ethical_reid_dataset',
     height=640,
@@ -39,8 +39,8 @@ extractor = torchreid.utils.FeatureExtractor(
     device="mps"
 )
 
-query_images = sorted(glob.glob("../datasets/Torch-Dataset/query/*/*.png"))
-gallery_images = sorted(glob.glob("../datasets/Torch-Dataset/gallery/*/*.png"))
+query_images = sorted(glob.glob("../datasets/system_c/query/*/*.png"))
+gallery_images = sorted(glob.glob("../datasets/system_c/gallery/*/*.png"))
 
 # Extract features
 query_features = extractor(query_images)
