@@ -47,9 +47,9 @@ class EthicalDataset(torchreid.data.ImageDataset):
         print(f"Checking directory: {dir_path}")  # Debugging line
 
         # Fetch all image paths
-        img_paths = glob.glob(os.path.join(dir_path, '*/*.png')) + \
-                    glob.glob(os.path.join(dir_path, '*/*.jpg')) + \
-                    glob.glob(os.path.join(dir_path, '*/*.jpeg'))
+        img_paths = (glob.glob(os.path.join(dir_path, '*/*.png')) +
+                    glob.glob(os.path.join(dir_path, '*/*.jpg')) +
+                    glob.glob(os.path.join(dir_path, '*/*.jpeg')))
 
         # Catch if no images in dir_path
         if len(img_paths) == 0:
