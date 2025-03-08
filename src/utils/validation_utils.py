@@ -88,7 +88,7 @@ def visualize_reid_results(query_images, gallery_images, similarity_matrix, top_
     num_queries = len(query_images)
     for i in range(num_queries):
         # 1 row, top-k + 1 columns to show query and then top-k gallery matches
-        fig, axes = plt.subplots(1, top_k + 1, figsize=(15, 5))
+        fig, axes = plt.subplots(1, top_k + 1, figsize=(30, 10))
 
         # Load and display the query image
         query_img = load_image(query_images[i])
