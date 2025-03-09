@@ -12,8 +12,8 @@ def main():
     moda_model_path = "../Training/modanet-seg-30.mlpackage"  # Use a YOLO model trained for clothing segmentation
     coco_model_path = "../Training/yolo11n-seg.mlpackage"  # Use a YOLO model trained for person segmentation
 
-    query_image_files = get_processed_images(query_image_paths, coco_model_path, moda_model_path)
-    gallery_image_files = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path)
+    query_image_files = get_processed_images(query_image_paths, coco_model_path, moda_model_path, save_logs)
+    gallery_image_files = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path, save_logs)
 
     num_query = len(query_image_paths)
     num_gallery = len(gallery_image_paths)
@@ -37,7 +37,7 @@ def main():
     evaluate_rank_map(similarity_matrix, query_image_paths, gallery_image_paths)
 
     # Visualise the results
-    visualize_reid_results(query_image_paths, gallery_image_paths, similarity_matrix, top_k=5)
+    # visualize_reid_results(query_image_paths, gallery_image_paths, similarity_matrix, top_k=5)
 
 if __name__ == "__main__":
     main()

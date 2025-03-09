@@ -42,7 +42,7 @@ class ProcessedImage:
         return segments_by_class
 
 
-    def compare_processed_image(self, other_image, penalty=10.0, save_path="../logs/comparison_results"):
+    def compare_processed_image(self, other_image, penalty=10.0, save_path="../logs/comparison_results", save_logs=False):
         """
         Compares this ProcessedImage with another using a Hungarian matching scheme over object images.
 
@@ -54,6 +54,7 @@ class ProcessedImage:
             other_image (ProcessedImage): The other image to compare with.
             penalty (float): Cost penalty per unmatched object.
             save_path (str): Directory to save compared images.
+            save_logs (bool): Whether to save logs.
 
         Returns:
             float: Overall similarity score.
@@ -106,14 +107,15 @@ class ProcessedImage:
                             f"Matched {class_name} {i} ({self.image_name}) with {class_name} {j} ({other_image.image_name}): Similarity = {similarity_score}\n")
 
                         # Save matched segmented images
-                        save_comparison_image(
-                            segment_list1[i].image,
-                            segment_list2[j].image,
-                        class_name,
-                        os.path.join(class_dir, f"{self.image_name}_{i}_vs_{other_image.image_name}_{j}_.png"),
-                        similarity_score,
-                        self.image_name,
-                        other_image.image_name)
+                        if save_logs:
+                            save_comparison_image(
+                                segment_list1[i].image,
+                                segment_list2[j].image,
+                            class_name,
+                            os.path.join(class_dir, f"{self.image_name}_{i}_vs_{other_image.image_name}_{j}_.png"),
+                            similarity_score,
+                            self.image_name,
+                            other_image.image_name)
                     log.write("\n")
 
             # Compute final similarity score

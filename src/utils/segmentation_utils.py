@@ -5,7 +5,7 @@ import torch
 from ultralytics import YOLO
 import os
 
-from src.utils.histogram_utils import equalise_image, apply_clahe
+from src.utils.histogram_utils import apply_clahe
 from src.core.processed_segment import ProcessedSegment
 from src.core.processed_image import ProcessedImage
 from typing import List
@@ -155,47 +155,68 @@ def get_connected_segments(original_image, person_box, result, iou_threshold=0.0
             processed_segments.append(processed_segment)
     return processed_segments
 
-def get_processed_images(image_paths, coco_model_path, moda_model_path):
-    # Load Modanet trained YOLO model
+def get_processed_images(image_paths, coco_model_path, moda_model_path, save_logs=False):
+    """
+    Processes images using YOLO for person detection and clothing segmentation.
+
+    Args:
+        image_paths (list): List of image file paths.
+        coco_model_path (str): Path to the YOLO model for person detection.
+        moda_model_path (str): Path to the YOLO model for clothing detection.
+        save_logs (bool): Whether to save logs.
+
+    Returns:
+        list: List of processed images.
+    """
+    # Load models once
     moda_model = YOLO(moda_model_path)
     coco_model = YOLO(coco_model_path)
 
-    # Run YOLO prediction, filtering for person
-    coco_results = coco_model.predict(image_paths, classes=[0], device=torch.device("mps"), stream=True, retina_masks=True)
-
+    processed_images = []
     person_to_box = {}
 
-    for result in coco_results:
-        target = get_target_person(result)
-        person_to_box[result.path] = target["bounding_box"]
-        file_name = os.path.splitext(os.path.basename(result.path))[0]
-        result.save(os.path.join("../logs/inference_results", f"{file_name}_person.png"))
+    for image_path in image_paths:
+        try:
+            # Run YOLO inference (single image at a time, avoid streaming)
+            coco_result = coco_model.predict(image_path, classes=[0], device="mps", retina_masks=True)[0]
 
-    # Run Modanet clothing predictions
-    moda_results = moda_model.predict(image_paths, device=torch.device("mps"), stream=True, retina_masks=True)
-    processed_images = []
+            # Get person bounding box and save detection image
+            target = get_target_person(coco_result)
+            if not target:
+                print(f"No person detected in {image_path}")
+                continue
 
-    # Process results
-    for result in moda_results:
-        related_person_box = person_to_box[result.path]
-        image_name = os.path.splitext(os.path.basename(result.path))[0]
-        print(f"Processing {image_name}")
-        result.save(os.path.join("../logs/inference_results", f"{image_name}_clothing.png"))
+            person_to_box[image_path] = target["bounding_box"]
 
-        # Open the original image
-        original_image = Image.open(result.path).convert("RGBA")
-        equalised_image = equalise_image(original_image)
-        clahe_image = apply_clahe(original_image)
+            if save_logs:
+                # Log inference results for each person
+                file_name = os.path.splitext(os.path.basename(image_path))[0]
+                coco_result.save(os.path.join("../logs/inference_results", f"{file_name}_person.png"))
 
-        # Ensure the result contains masks
-        if result.masks is None:
-            continue
+            # Run Modanet prediction (single image at a time)
+            moda_result = moda_model.predict(image_path, device="mps", retina_masks=True)[0]
 
-        print(result.path)
+            # Get related bounding box
+            related_person_box = person_to_box[image_path]
 
-        processed_segments = get_connected_segments(clahe_image, related_person_box, result)
+            # Open image safely with context manager (auto-closes image)
+            with Image.open(image_path).convert("RGBA") as original_image:
+                clahe_image = apply_clahe(original_image)
 
-        # Convert extracted clothing regions into a processed image
-        processed_image = ProcessedImage(result.path, original_image, processed_segments)
-        processed_images.append(processed_image)
+                # Ensure the result contains masks before processing
+                if moda_result.masks is None:
+                    continue
+
+                print(image_path)
+
+                # Get connected segments and process clothing items
+                processed_segments = get_connected_segments(clahe_image, related_person_box, moda_result)
+
+                # Create a processed image object and store it
+                processed_image = ProcessedImage(image_path, original_image, processed_segments)
+                processed_images.append(processed_image)
+
+        except Exception as e:
+            print(f"Error processing {image_path}: {e}")
+
     return processed_images
