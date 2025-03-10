@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 import os
+from memory_profiler import profile
 
 from src.utils.histogram_utils import apply_clahe
 from src.core.processed_segment import ProcessedSegment
@@ -121,7 +122,6 @@ def get_connected_segments(original_image, person_box, result, iou_threshold=0.0
         person_box (list or tensor): Bounding box [x1, y1, x2, y2] of the detected person.
         result (ultralytics.YOLO.Result): YOLO detection result with bounding boxes, class names, and masks.
         iou_threshold (float, optional): IoU threshold for object-person association. Default is 0.1.
-        distance_threshold (float, optional): Distance threshold for refining connections. Default is 0.1.
 
     Returns:
          List[ProcessedSegment]: List of processed segments.
@@ -155,6 +155,62 @@ def get_connected_segments(original_image, person_box, result, iou_threshold=0.0
             processed_segments.append(processed_segment)
     return processed_segments
 
+
+def process_single_image(image_path, coco_model, moda_model, save_logs):
+    """
+    Processes a single image and returns a ProcessedImage object.
+
+    Args:
+        image_path (str): Path to the image.
+        coco_model (YOLO): YOLO model for person detection.
+        moda_model (YOLO): YOLO model for clothing detection.
+        save_logs (bool): Whether to save logs.
+
+    Returns:
+        ProcessedImage or None: Processed image object if processing succeeds, otherwise None.
+    """
+    try:
+        # Run YOLO inference (single image at a time, avoid streaming)
+        coco_result = coco_model.predict(image_path, classes=[0], device="cpu", retina_masks=True)[0]
+
+        # Get person bounding box and save detection image
+        target = get_target_person(coco_result)
+        if not target:
+            print(f"No person detected in {image_path}")
+            return None
+
+        person_box = target["bounding_box"]
+
+        if save_logs:
+            # Log inference results for each person
+            file_name = os.path.splitext(os.path.basename(image_path))[0]
+            coco_result.save(os.path.join("../logs/inference_results", f"{file_name}_person.png"))
+
+        # Run Modanet prediction (single image at a time)
+        moda_result = moda_model.predict(image_path, device="cpu", retina_masks=True)[0]
+
+        # Open image safely with context manager (auto-closes image)
+        with Image.open(image_path).convert("RGBA") as original_image:
+            clahe_image = apply_clahe(original_image)
+
+            # Ensure the result contains masks before processing
+            if moda_result.masks is None:
+                return None
+
+            print(image_path)
+
+            # Get connected segments and process clothing items
+            processed_segments = get_connected_segments(clahe_image, person_box, moda_result)
+
+            # Create a processed image object and return it
+            processed_image = ProcessedImage(image_path, original_image, processed_segments)
+            return processed_image
+
+    except Exception as e:
+        print(f"Error processing {image_path}: {e}")
+        return None
+
+@profile
 def get_processed_images(image_paths, coco_model_path, moda_model_path, save_logs=False):
     """
     Processes images using YOLO for person detection and clothing segmentation.
@@ -173,50 +229,8 @@ def get_processed_images(image_paths, coco_model_path, moda_model_path, save_log
     coco_model = YOLO(coco_model_path)
 
     processed_images = []
-    person_to_box = {}
-
     for image_path in image_paths:
-        try:
-            # Run YOLO inference (single image at a time, avoid streaming)
-            coco_result = coco_model.predict(image_path, classes=[0], device="mps", retina_masks=True)[0]
-
-            # Get person bounding box and save detection image
-            target = get_target_person(coco_result)
-            if not target:
-                print(f"No person detected in {image_path}")
-                continue
-
-            person_to_box[image_path] = target["bounding_box"]
-
-            if save_logs:
-                # Log inference results for each person
-                file_name = os.path.splitext(os.path.basename(image_path))[0]
-                coco_result.save(os.path.join("../logs/inference_results", f"{file_name}_person.png"))
-
-            # Run Modanet prediction (single image at a time)
-            moda_result = moda_model.predict(image_path, device="mps", retina_masks=True)[0]
-
-            # Get related bounding box
-            related_person_box = person_to_box[image_path]
-
-            # Open image safely with context manager (auto-closes image)
-            with Image.open(image_path).convert("RGBA") as original_image:
-                clahe_image = apply_clahe(original_image)
-
-                # Ensure the result contains masks before processing
-                if moda_result.masks is None:
-                    continue
-
-                print(image_path)
-
-                # Get connected segments and process clothing items
-                processed_segments = get_connected_segments(clahe_image, related_person_box, moda_result)
-
-                # Create a processed image object and store it
-                processed_image = ProcessedImage(image_path, original_image, processed_segments)
-                processed_images.append(processed_image)
-
-        except Exception as e:
-            print(f"Error processing {image_path}: {e}")
-
+        processed_image = process_single_image(image_path, coco_model, moda_model, save_logs)
+        if processed_image is not None:
+            processed_images.append(processed_image)
     return processed_images

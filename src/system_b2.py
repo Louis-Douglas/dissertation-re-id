@@ -1,9 +1,12 @@
 import glob
 import numpy as np
+from memory_profiler import profile
+
 
 from src.utils.validation_utils import evaluate_rank_map, visualize_reid_results
 from src.utils.segmentation_utils import get_processed_images
 
+@profile
 def main():
     save_logs = False
     query_image_paths = sorted(glob.glob("../datasets/system_b/query/*/*.png"))
@@ -20,6 +23,10 @@ def main():
 
     # Create distance matrix (query × gallery)
     dist_matrix = np.zeros((num_query, num_gallery), dtype=np.float32)
+
+    # Automatically disable logging if dataset is too large
+    if (len(query_image_files) * len(gallery_image_files)) > 1000:
+        save_logs = False
 
     # Fill in similarity values
     for i, query_img in enumerate(query_image_files):
