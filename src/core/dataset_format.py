@@ -26,6 +26,7 @@ class EthicalDataset(torchreid.data.ImageDataset):
 
         super(EthicalDataset, self).__init__(train, query, gallery, **kwargs)
 
+    # Ensure all person ids are sequential and unique
     def remap_ids(self, img_paths):
         # Create set of all person id's by folder name
         pid_set = set()
@@ -43,6 +44,7 @@ class EthicalDataset(torchreid.data.ImageDataset):
 
         return pid2label
 
+    # Create the list of tuples containing image paths, person ids and cam ids
     def process_dir(self, dir_path, relabel=False):
         print(f"Checking directory: {dir_path}")  # Debugging line
 
@@ -62,7 +64,7 @@ class EthicalDataset(torchreid.data.ImageDataset):
         data = []
         for img_path in img_paths:
             pid = int(os.path.basename(os.path.dirname(img_path)))
-            camid = 0  # Assign a dummy camera ID (0 by default)
+            camid = 0  # Assign a dummy camera ID (defaulting to 0 due to time limitations)
             if relabel:
                 pid = pid2label[pid]  # Convert PID to label for training
             data.append((img_path, pid, camid))
