@@ -66,6 +66,10 @@ def extract_weighted_color_histogram(image, bins=8):
     # Convert the RGBA image to lab image format
     lab_image = RGBA2LAB(image)
 
+    # Check if lab_image is empty (no non-transparent pixels)
+    if lab_image.size == 0:
+        return np.empty((0, 4), dtype=np.float32) # Return empty signature
+
     # Compute the 3D histogram over LAB space.
     hist = cv2.calcHist([lab_image], channels=[0, 1, 2], mask=None,
                         histSize=[bins, bins, bins], ranges=[0, 256, 0, 256, 0, 256])
