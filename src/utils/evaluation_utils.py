@@ -1,7 +1,7 @@
 import numpy as np
-import cv2
 import matplotlib.pyplot as plt
 import os
+from src.utils.file_ops import load_image
 
 def evaluate_rank_map(similarity_matrix, query_images, gallery_images):
     num_query = similarity_matrix.shape[0] # Extract number of query images from rows in matrix
@@ -73,12 +73,6 @@ def evaluate_rank_map(similarity_matrix, query_images, gallery_images):
     print(f"Mean Average Precision (mAP): {mAP * 100:.2f}%")
 
     return rank1, rank5, mAP
-
-def load_image(image_path):
-    """Loads an image and converts it to RGB format for Matplotlib."""
-    img = cv2.imread(image_path)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
-    return img
 
 def visualize_reid_results(query_images, gallery_images, similarity_matrix, top_k=5):
     """

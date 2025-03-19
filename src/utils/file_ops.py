@@ -2,6 +2,16 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 import csv
 import shutil
+from collections import defaultdict
+import glob
+import re
+import cv2
+
+def load_image(image_path):
+    """Loads an image and converts it to RGB format for Matplotlib."""
+    img = cv2.imread(image_path)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+    return img
 
 def get_images(input_dir):
     """
@@ -147,3 +157,42 @@ def save_comparison_image(image1, image2, class_name, output_path, similarity_sc
 
     # Save the merged image
     merged_image.save(output_path)
+
+def image_id_sort_key(s):
+    """
+    Sort helper that extracts the image ID (the number after '_') from a filename.
+    """
+    match = re.split('([0-9]+)', s)[5] # Regex match splitting numbers and text, get 6th element which is photo id
+    if match:
+        return int(match)
+    return float('inf')  # Return infinity if no match is found
+
+
+def split_gallery_evenly(gallery_dir, increments):
+    """
+    Splits a galleries subdirectories into subsets of increasing size.
+    Each subset is returned as a list of image paths.
+
+    Args:
+        gallery_dir (str): Path to the gallery where each subdirectory corresponds to one person.
+        increments (list of int): A list indicating the number of images per person for each increment.
+
+    Returns:
+        list of list: Each element is a list of image paths representing a gallery subset.
+    """
+    # Build a mapping: person_id -> list of image paths
+    gallery = defaultdict(list)
+    for person_id in os.listdir(gallery_dir):
+        person_path = os.path.join(gallery_dir, person_id)
+        if os.path.isdir(person_path):
+            image_paths = sorted(glob.glob(os.path.join(person_path, "*.png")), key=image_id_sort_key)
+            gallery[person_id] = image_paths
+
+    gallery_splits = []
+    for n in increments:
+        split_list = []
+        for person_id, image_paths in gallery.items():
+            # For each person, select the first n images, or all images if fewer than n exist
+            split_list.extend(image_paths[:n])
+        gallery_splits.append(split_list)
+    return gallery_splits

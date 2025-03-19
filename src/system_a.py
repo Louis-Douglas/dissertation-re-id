@@ -1,21 +1,25 @@
 import torchreid
 import torch
 import glob
-from src.utils.validation_utils import evaluate_rank_map, visualize_reid_results
+import os
+from src.utils.evaluation_utils import evaluate_rank_map, visualize_reid_results
 
 
 extractor = torchreid.utils.FeatureExtractor(
     model_name='resnet50',
-    model_path='../Training/resnet50.pth',  # Change to your actual model path
+    model_path='../Training/resnet50.pth', # The path to the downloaded model
     device="cpu" # Change if you have a compatible GPU
 )
 
-query_images = sorted(glob.glob("../datasets/system_c/query/*/*.png"))
-gallery_images = sorted(glob.glob("../datasets/system_c/gallery/*/*.png"))
+# dataset_dir = "../datasets/Ethical-filtered-cropped"
+dataset_dir = "../datasets/Ethical-filtered"
+
+query_image_paths = sorted(glob.glob(os.path.join(dataset_dir, "query/*/*.png")))
+gallery_image_paths = sorted(glob.glob(os.path.join(dataset_dir, "gallery/*/*.png")))
 
 # Extract features
-query_features = extractor(query_images)
-gallery_features = extractor(gallery_images)
+query_features = extractor(query_image_paths)
+gallery_features = extractor(gallery_image_paths)
 
 print(f"Extracted {query_features.shape[0]} query features")
 print(f"Extracted {gallery_features.shape[0]} gallery features")
@@ -33,7 +37,7 @@ similarity_matrix = similarity_matrix.cpu().numpy()
 print(similarity_matrix)
 
 # Evaluate Re-ID Performance
-evaluate_rank_map(similarity_matrix, query_images, gallery_images)
+evaluate_rank_map(similarity_matrix, query_image_paths, gallery_image_paths)
 
 # Visualise the results
 # visualize_reid_results(query_images, gallery_images, similarity_matrix, top_k=5)
