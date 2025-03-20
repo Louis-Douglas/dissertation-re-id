@@ -1,7 +1,6 @@
 import glob
 import numpy as np
 import os
-from memory_profiler import profile
 from multiprocessing import Pool
 
 from src.utils.evaluation_utils import evaluate_rank_map, visualize_reid_results
@@ -9,7 +8,6 @@ from src.utils.segmentation_utils import get_processed_images
 from src.utils.multiprocessing_utils import compute_similarity
 
 
-@profile
 def main():
     save_logs = False
     # dataset_dir = "../datasets/Ethical-filtered-cropped"
