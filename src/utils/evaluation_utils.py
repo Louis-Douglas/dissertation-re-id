@@ -4,7 +4,7 @@ import os
 from src.utils.file_ops import load_image
 
 def evaluate_rank_map(similarity_matrix, query_images, gallery_images):
-    num_query = similarity_matrix.shape[0] # Extract number of query images from rows in matrix
+    num_query = len(query_images)
 
     # Initialise empty lists
     query_pids_list = []
@@ -104,8 +104,8 @@ def visualize_reid_results(query_images, gallery_images, similarity_matrix, top_
         top_gallery_imgs = []
 
         # Loop through top-k indices and retrieve corresponding gallery image paths
-        for idx in top_indices:
-            gallery_image_path = gallery_images[idx]  # Get the gallery image filename
+        for gal_id in top_indices:
+            gallery_image_path = gallery_images[gal_id]  # Get the gallery image filename
             top_gallery_imgs.append(gallery_image_path)  # Add it to the list
 
         # Align each top-k image in its appropriate column

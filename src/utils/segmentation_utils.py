@@ -171,7 +171,7 @@ def process_single_image(image_path, coco_model, moda_model, save_logs):
     """
     try:
         # Run YOLO inference (single image at a time, avoid streaming)
-        coco_result = coco_model.predict(image_path, classes=[0], device="cpu", retina_masks=True)[0]
+        coco_result = coco_model.predict(image_path, classes=[0], device="cpu", retina_masks=True, verbose=False)[0]
 
         # Get person bounding box and save detection image
         target = get_target_person(coco_result)
@@ -187,7 +187,7 @@ def process_single_image(image_path, coco_model, moda_model, save_logs):
             coco_result.save(os.path.join("../logs/inference_results", f"{file_name}_person.png"))
 
         # Run Modanet prediction (single image at a time)
-        moda_result = moda_model.predict(image_path, device="cpu", retina_masks=True)[0]
+        moda_result = moda_model.predict(image_path, device="cpu", retina_masks=True, verbose=False)[0]
 
         # Open image safely with context manager (auto-closes image)
         with Image.open(image_path).convert("RGBA") as original_image:
@@ -196,8 +196,6 @@ def process_single_image(image_path, coco_model, moda_model, save_logs):
             # Ensure the result contains masks before processing
             if moda_result.masks is None:
                 return None
-
-            print(image_path)
 
             # Get connected segments and process clothing items
             processed_segments = get_connected_segments(clahe_image, person_box, moda_result)
@@ -210,7 +208,7 @@ def process_single_image(image_path, coco_model, moda_model, save_logs):
         print(f"Error processing {image_path}: {e}")
         return None
 
-@profile
+# @profile
 def get_processed_images(image_paths, coco_model_path, moda_model_path, save_logs=False):
     """
     Processes images using YOLO for person detection and clothing segmentation.
