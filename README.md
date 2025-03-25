@@ -1,4 +1,4 @@
-# COMP303-277982
+# COMP303-2203712
 ## Person Re-Identification using You Only Look Once (YOLO) Segmentation and Colour Analysis:
 This dissertation aims to create a novel approach to person re-identification utilising both YOLOv11 object segmentation trained on the Modanet clothing dataset and performing colour comparison between those clothing objects.\
 By giving query images for the system to match in a gallery, we can calculate the Rank1, Rank 5 and mean average precision (mAP) of this system compared to traditional systems such as Resnet50.
