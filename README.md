@@ -17,6 +17,8 @@ Choose either .pt for most systems or coreml for macOS
 5. Use Jypiter notebook in `src/processing/Modanet_Training_Roboflow.ipynb` on preferred platform for training (Recommended is Google Colab).
 6. Run `yolo export model=<weights_file>.pt format=coreml` to convert the weights to coreml (if on macOS)
 
+Alternatively use the generated publicly available dataset on roboflow [here](https://universe.roboflow.com/comp303dissertation/re-id-clothing-accessories-0w4kl/dataset/1) and skip to step 5.
+
 Converting YOLO weights to coreml example:\
 `yolo export model=yolo11x-seg.pt format=coreml`
 
