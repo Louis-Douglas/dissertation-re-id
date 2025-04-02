@@ -82,7 +82,7 @@ def extract_weighted_color_histogram(image, bins=8):
     # Normalise the histogram
     hist_norm = hist / total
 
-    # Create bin centers for each channel.
+    # Create bin centres for each channel.
     # Example: [  0,  32,  64,  96, 128, 160, 192, 224, 256]
     # Bin 1: 0 → 32
     bin_edges = np.linspace(0, 256, bins + 1) # Create each edge for each bin, creating 9 evenly spaced points
@@ -138,7 +138,8 @@ def compare_emd(segment1, segment2):
 
 def apply_clahe(image):
     """
-    Applies CLAHE (Adaptive Histogram Equalisation) to the L channel of a LAB image.
+    Modified from: https://stackoverflow.com/questions/25008458/how-to-apply-clahe-on-rgb-color-images
+    Applies CLAHE (Contrast Limited Adaptive Histogram Equalisation) to the L channel of a LAB image.
 
     Args:
         image (PIL.Image.Image): Input BGR image.
