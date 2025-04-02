@@ -211,8 +211,8 @@ def dataset_cleanup():
       4. Rename files within the new person directories (in gallery and train).
       5. Create the ResNet directory by cloning the structure and modifying images.
     """
-    source_dataset_path = "../../datasets/Test"
-    target_dataset_path = "../../datasets/Test-ResNet"
+    source_dataset_path = "../../datasets/Ethical-filtered"
+    target_dataset_path = "../../datasets/Ethical-filtered-cropped"
 
     # Rename directories first
     rename_dirs(source_dataset_path)
