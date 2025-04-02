@@ -5,7 +5,6 @@ from src.utils.histogram_utils import compare_emd
 from src.utils.file_ops import ensure_directory_exists, save_comparison_image
 from src.core.processed_segment import ProcessedSegment
 from typing import List
-from memory_profiler import profile
 
 class ProcessedImage:
     def __init__(self, image_path, original_image, processed_segments: List[ProcessedSegment]):
@@ -42,7 +41,6 @@ class ProcessedImage:
             segments_by_class[class_name].append(segment)
         return segments_by_class
 
-    @profile
     def compare_processed_image(self, other_image, penalty=10.0, save_path="../logs/comparison_results",
                                 save_logs=False):
         """
