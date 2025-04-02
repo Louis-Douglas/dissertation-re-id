@@ -101,7 +101,7 @@ def is_connected(box1, box2, iou_threshold=0):
         box1 (Tensor array): The first bounding box in the format (x1, y1, x2, y2).
         box2 (Tensor array): The second bounding box in the same format as box1.
         iou_threshold (float, optional): The minimum IoU required for boxes to be considered connected.
-                                         Defaults to 0.1.
+                                         Defaults to 0.
 
     Returns:
         bool: True if the boxes are considered connected, False otherwise.
@@ -156,7 +156,7 @@ def get_connected_segments(original_image, person_box, result, iou_threshold=0.0
     return processed_segments
 
 
-def process_single_image(image_path, coco_model, moda_model, save_logs):
+def process_single_image(image_path, coco_model, moda_model, save_logs, enable_apply_clahe):
     """
     Processes a single image and returns a ProcessedImage object.
 
@@ -165,6 +165,7 @@ def process_single_image(image_path, coco_model, moda_model, save_logs):
         coco_model (YOLO): YOLO model for person detection.
         moda_model (YOLO): YOLO model for clothing detection.
         save_logs (bool): Whether to save logs.
+        enable_apply_clahe (bool): Whether to apply clahe.
 
     Returns:
         ProcessedImage or None: Processed image object if processing succeeds, otherwise None.
@@ -191,7 +192,12 @@ def process_single_image(image_path, coco_model, moda_model, save_logs):
 
         # Open image safely with context manager (auto-closes image)
         with Image.open(image_path).convert("RGBA") as original_image:
-            clahe_image = apply_clahe(original_image)
+
+            # Optional for hypothesis testing
+            if enable_apply_clahe:
+                clahe_image = apply_clahe(original_image)
+            else:
+                clahe_image = original_image
 
             # Ensure the result contains masks before processing
             if moda_result.masks is None:
@@ -209,7 +215,7 @@ def process_single_image(image_path, coco_model, moda_model, save_logs):
         return None
 
 # @profile
-def get_processed_images(image_paths, coco_model_path, moda_model_path, save_logs=False):
+def get_processed_images(image_paths, coco_model_path, moda_model_path, save_logs=False, enable_apply_clahe=True):
     """
     Processes images using YOLO for person detection and clothing segmentation.
 
@@ -218,6 +224,7 @@ def get_processed_images(image_paths, coco_model_path, moda_model_path, save_log
         coco_model_path (str): Path to the YOLO model for person detection.
         moda_model_path (str): Path to the YOLO model for clothing detection.
         save_logs (bool): Whether to save logs.
+        enable_apply_clahe (bool): Whether to apply clahe.
 
     Returns:
         list: List of processed images.
@@ -228,7 +235,7 @@ def get_processed_images(image_paths, coco_model_path, moda_model_path, save_log
 
     processed_images = []
     for image_path in image_paths:
-        processed_image = process_single_image(image_path, coco_model, moda_model, save_logs)
+        processed_image = process_single_image(image_path, coco_model, moda_model, save_logs, enable_apply_clahe)
         if processed_image is not None:
             processed_images.append(processed_image)
     return processed_images
