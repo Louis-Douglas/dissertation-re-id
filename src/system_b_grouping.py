@@ -143,17 +143,13 @@ def main():
         dataset_dir (str): Path to the dataset directory.
         moda_model_path (str): Path to the YOLO model file.
     """
-    # dataset_dir = "../datasets/Gen-test2"
-    dataset_dir = "../datasets/Custom-Gen"
+    dataset_dir = "../datasets/Ethical-filtered"
     gallery_image_paths = sorted(glob(f"{dataset_dir}/*/*.png") + glob(f"{dataset_dir}/*/*.jpg"))
-    moda_model_path = "../Training/modanet-seg-30.pt"  # Use a YOLO model trained for clothing segmentation
-    coco_model_path = "../Training/yolo11x-seg.pt"  # Use a YOLO model trained for person segmentation
+    moda_model_path = "../weights/modanet.pt"  # YOLO model trained for clothing segmentation
+    coco_model_path = "../weights/yolo11n-seg.pt"  # YOLO model trained for person segmentation
 
     processed_images = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path)
-    # group_images(processed_images)
     group_images_hierarchical(processed_images)
-
-
 
 if __name__ == '__main__':
     main()

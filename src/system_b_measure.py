@@ -1,16 +1,15 @@
 import glob
 import numpy as np
-from memory_profiler import profile, memory_usage
+from memory_profiler import memory_usage
 import os
 import time
 
 from src.utils.file_ops import split_gallery_evenly
-from src.utils.evaluation_utils import evaluate_rank_map, visualize_reid_results
+from src.utils.evaluation_utils import evaluate_rank_map_per_query
 from src.utils.segmentation_utils import get_processed_images
 from multiprocessing import Pool
 from src.utils.multiprocessing_utils import compute_similarity
 
-# @profile
 def process_subset(i, subset, dataset_dir, save_logs):
     # Count total images in this subset
     total_images = len(subset)
@@ -19,8 +18,8 @@ def process_subset(i, subset, dataset_dir, save_logs):
     query_image_paths = sorted(glob.glob(os.path.join(dataset_dir, "query/*/*.png")))
     gallery_image_paths = subset
 
-    moda_model_path = "../Training/modanet-seg-30.mlpackage"  # Use a YOLO model trained for clothing segmentation
-    coco_model_path = "../Training/yolo11n-seg.mlpackage"  # Use a YOLO model trained for person segmentation
+    moda_model_path = "../weights/modanet.mlpackage"  # YOLO model trained for clothing segmentation
+    coco_model_path = "../weights/yolo11n-seg.mlpackage"  # YOLO model trained for person segmentation
 
     query_image_files = get_processed_images(query_image_paths, coco_model_path, moda_model_path, save_logs)
     gallery_image_files = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path, save_logs)
@@ -56,13 +55,12 @@ def process_subset(i, subset, dataset_dir, save_logs):
     print(similarity_matrix)
 
     # Evaluate Re-ID Performance
-    evaluate_rank_map(similarity_matrix, query_image_paths, gallery_image_paths)
+    rank1_array, rank5_array, mAP_array = evaluate_rank_map_per_query(similarity_matrix, query_image_paths, gallery_image_paths)
+    print(f"Overall Rank-1 Accuracy: {np.mean(rank1_array) * 100:.2f}%\n")
+    print(f"Overall Rank-5 Accuracy: {np.mean(rank5_array) * 100:.2f}%\n")
+    print(f"Overall mAP: {np.mean(mAP_array) * 100:.2f}%\n\n")
 
-    # Visualise the results
-    # visualize_reid_results(query_image_paths, gallery_image_paths, similarity_matrix, top_k=5)
 
-
-# @profile
 def main():
     save_logs = False
     # dataset_dir = "../datasets/Ethical-filtered-cropped"
@@ -70,8 +68,7 @@ def main():
 
     gallery_dir = os.path.join(dataset_dir, "gallery")
     # Define increments
-    # increments = [1, 2, 3, 4, 5] # images per person
-    increments = [1, 2, 3]
+    increments = [1, 2, 3, 4, 5] # images per person
     gallery_subsets = split_gallery_evenly(gallery_dir, increments)
 
     # List to store results: (increment number, total gallery images, elapsed time, memory usage)

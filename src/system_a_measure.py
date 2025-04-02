@@ -3,11 +3,11 @@ import torch
 import glob
 import os
 import time
-from memory_profiler import profile, memory_usage
-from src.utils.evaluation_utils import evaluate_rank_map, visualize_reid_results
+import numpy as np
+from memory_profiler import memory_usage
+from src.utils.evaluation_utils import evaluate_rank_map_per_query
 from src.utils.file_ops import split_gallery_evenly
 
-# @profile
 def process_subset(i, subset, dataset_dir, extractor):
     # Count total images in this subset
     total_images = len(subset)
@@ -36,12 +36,13 @@ def process_subset(i, subset, dataset_dir, extractor):
     print(similarity_matrix)
 
     # Evaluate Re-ID Performance
-    evaluate_rank_map(similarity_matrix, query_image_paths, gallery_image_paths)
+    rank1_array, rank5_array, mAP_array = evaluate_rank_map_per_query(similarity_matrix, query_image_paths,
+                                                                      gallery_image_paths)
+    print(f"Overall Rank-1 Accuracy: {np.mean(rank1_array) * 100:.2f}%\n")
+    print(f"Overall Rank-5 Accuracy: {np.mean(rank5_array) * 100:.2f}%\n")
+    print(f"Overall mAP: {np.mean(mAP_array) * 100:.2f}%\n\n")
 
-    # Visualise the results
-    # visualize_reid_results(query_images, gallery_images, similarity_matrix, top_k=5)
 
-# @profile
 def main():
     extractor = torchreid.utils.FeatureExtractor(
         model_name='resnet50',
@@ -53,9 +54,10 @@ def main():
     dataset_dir = "../datasets/Ethical-filtered"
 
     gallery_dir = os.path.join(dataset_dir, "gallery")
+
     # Define increments
-    # increments = [1, 2, 3, 4, 5] # images per person
-    increments = [1, 2, 3]
+    increments = [1, 2, 3, 4, 5] # images per person
+
     gallery_subsets = split_gallery_evenly(gallery_dir, increments)
 
     # List to store data results: (increment number, total gallery images, elapsed time, memory usage)
