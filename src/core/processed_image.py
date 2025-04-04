@@ -41,8 +41,7 @@ class ProcessedImage:
             segments_by_class[class_name].append(segment)
         return segments_by_class
 
-    def compare_processed_image(self, other_image, penalty=10.0, save_path="../logs/comparison_results",
-                                save_logs=False):
+    def compare_processed_image(self, other_image, save_logs, penalty=10.0, save_path="../logs/comparison_results"):
         """
         Compares this ProcessedImage with another using a Hungarian matching scheme over object images.
 

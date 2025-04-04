@@ -18,8 +18,10 @@ def process_subset(i, subset, dataset_dir, save_logs):
     query_image_paths = sorted(glob.glob(os.path.join(dataset_dir, "query/*/*.png")))
     gallery_image_paths = subset
 
-    moda_model_path = "../weights/modanet.mlpackage"  # YOLO model trained for clothing segmentation
+    moda_model_path = "../weights/modanet-seg-30.mlpackage"  # YOLO model trained for clothing segmentation
     coco_model_path = "../weights/yolo11n-seg.mlpackage"  # YOLO model trained for person segmentation
+    # moda_model_path = "../Training/modanet-seg-30.mlpackage"  # Use a YOLO model trained for clothing segmentation
+    # coco_model_path = "../Training/yolo11n-seg.mlpackage"  # Use a YOLO model trained for person segmentation
 
     query_image_files = get_processed_images(query_image_paths, coco_model_path, moda_model_path, save_logs)
     gallery_image_files = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path, save_logs)
@@ -28,7 +30,8 @@ def process_subset(i, subset, dataset_dir, save_logs):
     num_gallery = len(gallery_image_files)
 
     # Automatically disable logging if dataset is too large
-    if (num_query * num_gallery) > 1000:
+    if (num_query * num_gallery) > 10000:
+        print("Disabling save logs due to large dataset")
         save_logs = False
 
     # Create distance matrix (query × gallery)
@@ -56,15 +59,15 @@ def process_subset(i, subset, dataset_dir, save_logs):
 
     # Evaluate Re-ID Performance
     rank1_array, rank5_array, mAP_array = evaluate_rank_map_per_query(similarity_matrix, query_image_paths, gallery_image_paths)
-    print(f"Overall Rank-1 Accuracy: {np.mean(rank1_array) * 100:.2f}%\n")
-    print(f"Overall Rank-5 Accuracy: {np.mean(rank5_array) * 100:.2f}%\n")
-    print(f"Overall mAP: {np.mean(mAP_array) * 100:.2f}%\n\n")
+    print(f"Overall Rank-1 Accuracy: {np.mean(rank1_array) * 100:.2f}%")
+    print(f"Overall Rank-5 Accuracy: {np.mean(rank5_array) * 100:.2f}%")
+    print(f"Overall mAP: {np.mean(mAP_array) * 100:.2f}%\n")
 
 
 def main():
     save_logs = False
     # dataset_dir = "../datasets/Ethical-filtered-cropped"
-    dataset_dir = "../datasets/Ethical-filtered"
+    dataset_dir = "../datasets/Ethical-filtered-cropped"
 
     gallery_dir = os.path.join(dataset_dir, "gallery")
     # Define increments

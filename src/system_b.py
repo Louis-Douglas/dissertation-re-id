@@ -80,8 +80,8 @@ def main(dataset_dir, enable_apply_clahe):
 
 if __name__ == "__main__":
     dataset_dir = "../datasets/Ethical-filtered-cropped"
-    enable_apply_clahe = False
+    enable_apply_clahe = True
     rank1_array, rank5_array, mAP_array = main(dataset_dir, enable_apply_clahe)
     print(f"Rank1 : {np.mean(rank1_array) * 100:.2f}%")
-    print(f"Rank5 : {np.mean(rank5_array) * 100:.2f}")
-    print(f"mAP : {np.mean(mAP_array) * 100:.2f}")
+    print(f"Rank5 : {np.mean(rank5_array) * 100:.2f}%")
+    print(f"mAP : {np.mean(mAP_array) * 100:.2f}%")

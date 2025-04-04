@@ -38,9 +38,9 @@ def process_subset(i, subset, dataset_dir, extractor):
     # Evaluate Re-ID Performance
     rank1_array, rank5_array, mAP_array = evaluate_rank_map_per_query(similarity_matrix, query_image_paths,
                                                                       gallery_image_paths)
-    print(f"Overall Rank-1 Accuracy: {np.mean(rank1_array) * 100:.2f}%\n")
-    print(f"Overall Rank-5 Accuracy: {np.mean(rank5_array) * 100:.2f}%\n")
-    print(f"Overall mAP: {np.mean(mAP_array) * 100:.2f}%\n\n")
+    print(f"Overall Rank-1 Accuracy: {np.mean(rank1_array) * 100:.2f}%")
+    print(f"Overall Rank-5 Accuracy: {np.mean(rank5_array) * 100:.2f}%")
+    print(f"Overall mAP: {np.mean(mAP_array) * 100:.2f}%\n")
 
 
 def main():
@@ -51,7 +51,7 @@ def main():
     )
 
     # dataset_dir = "../datasets/Ethical-filtered-cropped"
-    dataset_dir = "../datasets/Ethical-filtered"
+    dataset_dir = "../datasets/Ethical-filtered-cropped"
 
     gallery_dir = os.path.join(dataset_dir, "gallery")
 
