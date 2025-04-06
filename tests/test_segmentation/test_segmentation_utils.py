@@ -15,9 +15,12 @@ from src.utils.segmentation_utils import (
 
 from torchvision.ops import box_iou
 
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Define YOLO model paths
-COCO_MODEL_PATH = "../../weights/yolo11n-seg.mlpackage"
-MODANET_MODEL_PATH = "../../weights/modanet-seg.mlpackage"
+COCO_MODEL_PATH = os.path.join(project_root, '../weights', 'yolo11n-seg.mlpackage')
+MODANET_MODEL_PATH = os.path.join(project_root, '../weights', 'modanet-seg.mlpackage')
+main_dir = os.path.join(project_root, "test_segmentation")
+
 
 # ----- get target person function -----
 
@@ -35,11 +38,10 @@ def draw_bounding_box(image, box, color, label="Detected"):
 
 def test_get_target_person():
     """Tests getting the target person by comparing YOLO result output with ground truth."""
-    main_image_dir = "images/target_person"
+    main_image_dir = os.path.join(main_dir, "images/target_person")
     input_image_path = os.path.join(main_image_dir, "input/test_image.png")
     output_image_path = os.path.join(main_image_dir, "output")
     ground_truth_bbox = [203.9024,  40.6577, 389.4435, 634.5903]
-    # model_path = "../yolo11x-seg.pt"
 
     # Load YOLO model
     model = YOLO(COCO_MODEL_PATH)
@@ -91,8 +93,8 @@ def test_get_target_person():
 # ----- Test person extraction -----
 
 # Paths to test images
-TEST_PERSON_EXTRACTION_IMAGES = "images/person_extraction"
-TRUTH_PERSON_EXTRACTION_IMAGES = "images/person_extraction/truths"
+TEST_PERSON_EXTRACTION_IMAGES = os.path.join(main_dir, "images/person_extraction")
+TRUTH_PERSON_EXTRACTION_IMAGES = os.path.join(main_dir, "images/person_extraction/truths")
 
 # Helper function to compare images
 def images_are_similar(img1, img2, tolerance=5):
@@ -147,7 +149,7 @@ def test_person_extraction(image_name):
 def test_get_connected_segments():
     """Tests extracting objects connected to a person and separating non-connected items."""
 
-    main_image_dir = "images/connected_segments"
+    main_image_dir = os.path.join(main_dir, "images/connected_segments")
     input_dir = os.path.join(main_image_dir, "input")
     output_dir = os.path.join(main_image_dir, "output")
 
@@ -259,8 +261,8 @@ def test_get_connected_segments():
 def test_get_processed_images(image_name):
     """Tests get_processed_images by verifying output structure and saving inference results."""
     # Define test image directory
-    test_image_dir = "images/get_processed/input"
-    test_output_dir = "images/get_processed/output"
+    test_image_dir = os.path.join(main_dir, "images/get_processed/input")
+    test_output_dir = os.path.join(main_dir, "images/get_processed/output")
 
     # Prepare image paths
     input_image_path = os.path.join(test_image_dir, image_name)
