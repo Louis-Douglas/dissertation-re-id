@@ -1,10 +1,8 @@
 import os
 import pytest
 from PIL import Image, ImageChops
-# from pyasn1_modules.rfc7292 import bagtypes
 from ultralytics import YOLO
 import cv2
-# import matplotlib.pyplot as plt
 import torch
 
 from src.core.processed_image import ProcessedImage
@@ -18,8 +16,8 @@ from src.utils.segmentation_utils import (
 from torchvision.ops import box_iou
 
 # Define YOLO model paths
-COCO_MODEL_PATH = "../yolo11x-seg.pt"
-MODANET_MODEL_PATH = "../modanet-seg.pt"
+COCO_MODEL_PATH = "../../weights/yolo11n-seg.mlpackage"
+MODANET_MODEL_PATH = "../../weights/modanet-seg.mlpackage"
 
 # ----- get target person function -----
 
@@ -134,7 +132,7 @@ def test_person_extraction(image_name):
         extracted_image.save(os.path.join(TEST_PERSON_EXTRACTION_IMAGES, "output", f"{image_name}"))
 
         # Uncomment to save extracted truth
-        # extracted_image.save(os.path.join(TEST_PERSON_EXTRACTION_IMAGES, "truths", image_name))
+        # extracted_image.save(os.path.join(TEST_PERSON_EXTRACTION_IMAGES, "truths", f"truth_{image_name}"))
 
         # Load the expected ground truth image
         ground_truth_path = os.path.join(TRUTH_PERSON_EXTRACTION_IMAGES, f"truth_{image_name}")
@@ -196,7 +194,7 @@ def test_get_connected_segments():
 
         draw_image = image_cv.copy()
         draw_bounding_box(draw_image, person_bbox_draw.squeeze().tolist(), (0, 255, 0), "Person")
-        draw_bounding_box(draw_image, obj_bbox_draw.squeeze().tolist(), (255, 0, 0), f"{obj_class_name} - {box_iou(person_bbox_draw, obj_bbox_draw).item():.4f}")
+        draw_bounding_box(draw_image, obj_bbox_draw.squeeze().tolist(), (255, 0, 0), f"{obj_class_name} - IoU: {box_iou(person_bbox_draw, obj_bbox_draw).item():.4f}")
         # Compare visually
         bbox_compare_output_path = os.path.join(output_dir, f"output_comparison_{obj_class_name}.png")
         cv2.imwrite(bbox_compare_output_path, draw_image)
@@ -234,24 +232,17 @@ def test_get_connected_segments():
     moda_results.save(inference_output_path)
 
     # Expected truth bounding boxes for connected and non-connected items.
-    truth_connected = [
-        ("pants", [155.6253662109375, 343.0889892578125, 341.788818359375, 583.724365234375]),
-        ("footwear", [141.73104858398438, 557.96826171875, 221.24917602539062, 611.35986328125]),
-        ("footwear", [311.79132080078125, 572.38720703125, 398.71673583984375, 613.7119140625]),
-        ("bag", [157.1688232421875, 203.13552856445312, 217.32672119140625, 341.4526672363281]),
-        ("outer", [185.982666015625, 170.40908813476562, 284.4220275878906, 384.4436950683594]),
-        ("bag", [25.147689819335938, 464.5473327636719, 161.8079071044922, 604.21533203125]),
-        ("top", [242.1937713623047, 163.2430419921875, 313.47381591796875, 354.104248046875]),
-        ("headwear", [240.5162353515625, 90.83261108398438, 334.72723388671875, 166.4210205078125]),
-        # ("outer", [564.1175537109375, 293.03289794921875, 607.0076904296875, 353.1461181640625]),
-        ("bag", [242.06231689453125, 177.67501831054688, 275.65740966796875, 276.5303955078125]),
-        ("top", [242.95523071289062, 343.4818420410156, 277.9419860839844, 367.9126892089844]),
-        ("top", [253.90457153320312, 343.52691650390625, 277.3778381347656, 368.85626220703125]),  # Example: a "table" with these coordinates.
+    truth_connected = [('pants', [155.75, 343.0, 342.0, 583.0]),
+                       ('footwear', [141.6875, 557.5, 221.3125, 611.5]),
+                       ('footwear', [312.0, 572.5, 399.0, 613.5]),
+                       ('bag', [157.25, 202.6875, 218.0, 341.8125]),
+                       ('outer', [186.0, 172.3125, 283.5, 384.1875]),
+                       ('bag', [25.125, 464.5, 161.5, 602.5]),
+                       ('top', [242.25, 162.8125, 313.75, 354.1875]),
+                       ('headwear', [240.625, 90.9375, 334.875, 166.8125]),
+                       ('top', [243.375, 343.5, 278.625, 368.0]),
     ]
-    truth_non_connected = [
-        ("outer", [564.1175537109375, 293.03289794921875, 607.0076904296875, 353.1461181640625]),
-        ("outer", [563.9481811523438, 292.8067932128906, 609.5321655273438, 388.1569519042969]),
-    ]
+    truth_non_connected = [('outer', [564.0, 293.0, 600.0, 353.0])]
 
     # Check if the results match the truth.
     assert connected_items == truth_connected, (
