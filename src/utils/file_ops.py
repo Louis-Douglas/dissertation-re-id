@@ -13,6 +13,7 @@ def load_image(image_path):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
     return img
 
+
 def get_images(input_dir):
     """
     Loads all images from a specified directory and returns them in a list.
@@ -29,7 +30,6 @@ def get_images(input_dir):
         file_path = os.path.join(input_dir, file)
         if file_path.lower().endswith((".jpg", ".jpeg", ".png")):
             image = Image.open(file_path)
-            # image = cv2.imread(file_path) # (B G R) Image
             images[file.title()] = image
     return images
 
@@ -38,13 +38,18 @@ def ensure_directory_exists(directory):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
+
 def save_dominant_colors_to_csv(dominant_colors, csv_filename="dominant_colors.csv"):
     """
-    Saves the dominant colors dictionary to a CSV file.
+    Saves the dominant colours dictionary to a CSV file.
 
     Args:
         dominant_colors (dict): Dictionary mapping class names to a list of hex colour codes.
         csv_filename (str): Name of the output CSV file.
+
+    Based on guidance from:
+    https://realpython.com/python-csv/
+    https://docs.python.org/3/library/csv.html
     """
     with open(csv_filename, mode='w', newline='') as file:
         writer = csv.writer(file)
@@ -64,6 +69,8 @@ def load_dominant_colors_from_csv(csv_filename="dominant_colors.csv"):
 
     Returns:
         dict: Dictionary mapping class names to a list of hex colour codes.
+    Based on guidance from:
+    https://docs.python.org/3/library/csv.html
     """
     dominant_colors = {}
 
@@ -86,6 +93,9 @@ def clear_directory(directory_path):
     """
     Deletes all files and subdirectories inside the given directory.
     The directory itself remains.
+
+    Based on guidance from:
+    https://pynative.com/python-delete-files-and-directories/
     """
     if not os.path.exists(directory_path):
         print(f"Directory {directory_path} does not exist.")
@@ -115,6 +125,11 @@ def save_comparison_image(image1, image2, class_name, output_path, similarity_sc
         similarity_score (float): Similarity score between the two images.
         label1 (str): Label for the first image (default "Image 1").
         label2 (str): Label for the second image (default "Image 2").
+
+    Based on guidance from:
+    https://pillow.readthedocs.io/en/stable/handbook/tutorial.html
+    https://cloudinary.com/guides/image-effects/a-guide-to-adding-text-to-images-with-python
+    https://stackoverflow.com/questions/30227466/combine-several-images-horizontally-with-python
     """
     # Ensure both images are the same height (resize the shorter one)
     max_height = max(image1.height, image2.height)

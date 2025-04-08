@@ -1,10 +1,9 @@
-from torchvision.ops import box_iou, distance_box_iou
+from torchvision.ops import box_iou
 from PIL import Image
 import numpy as np
 import torch
 from ultralytics import YOLO
 import os
-from memory_profiler import profile
 
 from src.utils.histogram_utils import apply_clahe
 from src.core.processed_segment import ProcessedSegment
@@ -24,6 +23,9 @@ def get_target_person(result):
             - 'bounding_box': Bounding box of the largest mask.
             - 'area': Pixel area of the mask.
         Returns None if no persons are found.
+
+    Based on guidance from:
+    https://docs.ultralytics.com/usage/simple-utilities/#bounding-boxes
     """
     masks = result.masks  # Get segmentation masks
     boxes = result.boxes  # Bounding boxes for detected objects
@@ -68,6 +70,12 @@ def extract_segmented_object(mask, original_image):
 
     Returns:
         PIL.Image.Image: Cropped and transparent-segmented PIL.Image of object.
+
+    Based on guidance from:
+    https://campus.datacamp.com/courses/biomedical-image-analysis-in-python
+    https://river.me/paste-a-transparent-background-image-with-pil/
+    https://github.com/ultralytics/ultralytics/issues/2021
+    https://pillow.readthedocs.io/en/stable/reference/Image.html
     """
     # Convert mask to NumPy array (binary mask)
     mask_array = mask.cpu().numpy().astype(np.uint8) * 255  # Convert to 0-255 scale
@@ -112,6 +120,7 @@ def is_connected(box1, box2, iou_threshold=0):
     # Return true if iou is above threshold
     return iou > iou_threshold
 
+
 def get_connected_segments(original_image, person_box, result, iou_threshold=0.0):
     """
     Extracts objects (e.g., clothing, accessories) connected to a detected person
@@ -125,6 +134,10 @@ def get_connected_segments(original_image, person_box, result, iou_threshold=0.0
 
     Returns:
          List[ProcessedSegment]: List of processed segments.
+
+    Based on guidance from:
+    https://docs.ultralytics.com/reference/engine/results/#ultralytics.engine.results.Results
+    https://pytorch.org/docs/stable/tensors.html
     """
     boxes = result.boxes  # Bounding boxes for detected objects
     class_names = result.names  # Class names from model
@@ -132,7 +145,6 @@ def get_connected_segments(original_image, person_box, result, iou_threshold=0.0
     tensor_person_box = torch.tensor([person_box], dtype=torch.float32)  # Convert to tensor
 
     processed_segments = []
-    # connected_objects = {}  # Store connected object details
 
     for i, box in enumerate(boxes):
         class_id = int(box.cls[0].item())  # Class ID of the detection
@@ -169,6 +181,8 @@ def process_single_image(image_path, coco_model, moda_model, save_logs, enable_a
 
     Returns:
         ProcessedImage or None: Processed image object if processing succeeds, otherwise None.
+    Based on guidance from:
+    https://docs.ultralytics.com/modes/predict/
     """
     try:
         # Run YOLO inference (single image at a time, avoid streaming)
@@ -182,13 +196,14 @@ def process_single_image(image_path, coco_model, moda_model, save_logs, enable_a
 
         person_box = target["bounding_box"]
 
+        # Run Modanet prediction (single image at a time)
+        moda_result = moda_model.predict(image_path, device="cpu", retina_masks=True, verbose=False)[0]
+
         if save_logs:
             # Log inference results for each person
             file_name = os.path.splitext(os.path.basename(image_path))[0]
             coco_result.save(os.path.join("../logs/inference_results", f"{file_name}_person.png"))
-
-        # Run Modanet prediction (single image at a time)
-        moda_result = moda_model.predict(image_path, device="cpu", retina_masks=True, verbose=False)[0]
+            moda_result.save(os.path.join("../logs/inference_results", f"{file_name}_clothing.png"))
 
         # Open image safely with context manager (auto-closes image)
         with Image.open(image_path).convert("RGBA") as original_image:
@@ -214,7 +229,7 @@ def process_single_image(image_path, coco_model, moda_model, save_logs, enable_a
         print(f"Error processing {image_path}: {e}")
         return None
 
-# @profile
+
 def get_processed_images(image_paths, coco_model_path, moda_model_path, save_logs=False, enable_apply_clahe=True):
     """
     Processes images using YOLO for person detection and clothing segmentation.

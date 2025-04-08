@@ -10,7 +10,7 @@ def compute_similarity(args):
     try:
         # Compute the similarity.
         result = query_img.compare_processed_image(gallery_img, save_logs)
-        return (i, j, result)
+        return i, j, result
     except Exception as e:
         print(f"Error computing similarity for query index {i} and gallery index {j}: {e}")
-        return (i, j, None)
+        return i, j, None

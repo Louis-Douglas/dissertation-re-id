@@ -19,6 +19,11 @@ def RGBA2LAB(image):
     Returns:
         np.ndarray: LAB representation of non-transparent pixels with shape (-1, 1, 3),
                     or an empty array if all pixels are transparent.
+
+    Based on guidance from:
+    https://docs.opencv.org/3.4/de/d25/imgproc_color_conversions.html
+    https://numpy.org/doc/stable/reference/generated/numpy.reshape.html
+    https://campus.datacamp.com/courses/biomedical-image-analysis-in-python
     """
     # Ensure the image is in RGBA mode.
     if image.mode != 'RGBA':
@@ -50,6 +55,7 @@ def RGBA2LAB(image):
 
     return lab_image
 
+
 def extract_weighted_color_histogram(image, bins=8):
     """
     Extracts a weighted LAB colour histogram signature for use in EMD.
@@ -62,6 +68,15 @@ def extract_weighted_color_histogram(image, bins=8):
     Returns:
         np.ndarray: Signature array of shape (n, 4) where the first column is the
                     normalised weight and the next three columns are the LAB bin centers.
+
+    Based on guidance from:
+    https://hiweller.github.io/colordistance/binning-methods.html
+    https://pyimagesearch.com/2021/04/28/opencv-image-histograms-cv2-calchist/
+    https://realpython.com/np-linspace-numpy/
+    https://www.udacity.com/blog/2021/10/numpy-np-meshgrid-tutorial-for-beginners.html
+    https://www.w3resource.com/numpy/manipulation/column-stack.php
+    https://alexandrakapp.blog/2021/12/07/similarity-of-maps/
+    https://hiweller.github.io/colordistance/color-metrics.html
     """
     # Convert the RGBA image to lab image format
     lab_image = RGBA2LAB(image)
@@ -123,6 +138,9 @@ def compare_emd(segment1, segment2):
 
     Returns:
         float: EMD similarity score (lower is more similar).
+
+    Based on guidance from:
+    https://hiweller.github.io/colordistance/color-metrics.html
     """
 
     sig1 = extract_weighted_color_histogram(segment1.image)
@@ -136,16 +154,17 @@ def compare_emd(segment1, segment2):
     emd_value = cv2.EMD(sig1, sig2, cv2.DIST_L2)[0]
     return emd_value
 
+
 def apply_clahe(image):
     """
-    Modified from: https://stackoverflow.com/questions/25008458/how-to-apply-clahe-on-rgb-color-images
-    Applies CLAHE (Contrast Limited Adaptive Histogram Equalisation) to the L channel of a LAB image.
-
     Args:
         image (PIL.Image.Image): Input BGR image.
 
     Returns:
         PIL.Image.Image: Image with equalised brightness while preserving colours.
+
+    Based on guidance from:
+    https://stackoverflow.com/questions/25008458/how-to-apply-clahe-on-rgb-color-images
     """
     image = np.array(image) # Convert to BGR array
 
