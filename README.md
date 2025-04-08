@@ -25,6 +25,10 @@ Converting YOLO weights to coreml example:\
 
 The required MS COCO (Microsoft Common Objects in Context) weights will download automatically when running the system, although these will also need to be converted to coreml if running on macOS.
 
+### Obtaining ResNet Weights:
+Download from [here](https://kaiyangzhou.github.io/deep-person-reid/MODEL_ZOO.html)\
+Place in weights directory
+
 ### Downloading Datasets
 Download the filtered and filtered-cropped datasets from [Release v1.0](https://github.falmouth.ac.uk/GA-Undergrad-Student-Work-24-25/COMP303-277982/releases/tag/v1.0) and put them in the datasets directory in the repository.
 
