@@ -19,6 +19,11 @@ def evaluate_rank_map_per_query(similarity_matrix, query_images, gallery_images)
 
     Returns:
         tuple: Three np.ndarray objects corresponding to the per-query Rank-1, Rank-5, and AP values.
+
+    Based on guidance from:
+    https://github.com/KaiyangZhou/deep-person-reid/blob/566a56a2cb255f59ba75aa817032621784df546a/torchreid/utils/GPU-Re-Ranking/utils.py#L73
+    https://medium.com/analytics-vidhya/ranked-accuracy-11bdaef795e3
+    https://medium.com/@conniezhou678/mastering-data-algorithm-part-13-top-k-elements-in-python-206950da96b8
     """
     num_query = len(query_images)
 
@@ -75,12 +80,13 @@ def evaluate_rank_map_per_query(similarity_matrix, query_images, gallery_images)
         if len(relevant) > 0:
             precision_at_k = []
 
+            # For each correct match in the 100 match array
             for k, idx in enumerate(relevant):
-                # k is the index in the list of relevant correct matches
-                # idx is the index at which the k-th relevant item appears in the full ranked list
+                # k = How many correct matches have been found so far
+                # idx = The index at which the k-th relevant item appears in the full ranked list
 
                 # Compute precision at this point
-                precision = (k + 1) / (idx + 1) # Number of relevant items / Position in the full ranked list
+                precision = (k + 1) / (idx + 1) # Correct matches found so far / Position in the full ranked list
                 precision_at_k.append(precision)
 
             ap_list.append(np.mean(precision_at_k))
@@ -92,9 +98,18 @@ def evaluate_rank_map_per_query(similarity_matrix, query_images, gallery_images)
 
 def visualize_reid_results(query_images, gallery_images, similarity_matrix, top_k=5):
     """
-    Visualises the Re-ID results by showing query images with their top-k matched gallery images.
-    """
+    Visualises person Re-ID results by displaying each query image alongside its top-k most similar gallery matches.
 
+    Args:
+        query_images (list): List of file paths to query images.
+        gallery_images (list): List of file paths to gallery images.
+        similarity_matrix (np.ndarray): A 2D array (num_query x num_gallery) of similarity scores,
+                                        where higher values indicate greater similarity.
+        top_k (int, optional): Number of top gallery matches to display per query (default is 5).
+
+    Based on guidance from:
+    https://github.com/layumi/Person_reID_baseline_pytorch/blob/master/tutorial/README.md
+    """
     num_queries = len(query_images)
     for i in range(num_queries):
         # 1 row, top-k + 1 columns to show query and then top-k gallery matches
