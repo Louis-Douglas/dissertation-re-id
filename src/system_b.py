@@ -9,13 +9,16 @@ from src.utils.multiprocessing_utils import compute_similarity
 
 
 def main(dataset_dir, enable_apply_clahe):
+    print("Current working directory:", os.getcwd())
     save_logs = False
+
 
     query_image_paths = sorted(glob.glob(os.path.join(dataset_dir, "query/*/*.png")))
     gallery_image_paths = sorted(glob.glob(os.path.join(dataset_dir, "gallery/*/*.png")))
 
-    moda_model_path = "../weights/modanet.mlpackage"  # YOLO model trained for clothing segmentation
+    moda_model_path = "../weights/modanet-seg.mlpackage"  # YOLO model trained for clothing segmentation
     coco_model_path = "../weights/yolo11n-seg.mlpackage"  # YOLO model trained for person segmentation
+
 
     query_image_files = get_processed_images(query_image_paths, coco_model_path, moda_model_path, save_logs, enable_apply_clahe)
     gallery_image_files = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path, save_logs, enable_apply_clahe)
@@ -55,9 +58,9 @@ def main(dataset_dir, enable_apply_clahe):
     # Save results to a text file
     output_dir = "../logs/statistical_test_data"
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, "system_b_ethical_filtered_cropped_no_CLAHE.txt")
+    output_file = os.path.join(output_dir, "system_b_ethical_filtered_uncropped_CLAHE_testing.txt")
     with open(output_file, "w") as f:
-        f.write("System B - Ethical-filtered-cropped-no-CLAHE\n")
+        f.write("System B - Ethical-filtered-uncropped-CLAHE\n")
         f.write("========================\n\n")
         f.write(f"Overall Rank-1 Accuracy: {np.mean(rank1_array) * 100:.2f}%\n")
         f.write(f"Overall Rank-5 Accuracy: {np.mean(rank5_array) * 100:.2f}%\n")
@@ -73,13 +76,13 @@ def main(dataset_dir, enable_apply_clahe):
         f.write(f"rank5_array = {rank5_array.tolist()}\n")
         f.write(f"mAP_array   = {mAP_array.tolist()}\n")
 
+    # Visualise the results
+    visualize_reid_results(query_image_paths, gallery_image_paths, similarity_matrix, top_k=5)
+
     return rank1_array, rank5_array, mAP_array
 
-    # Visualise the results
-    # visualize_reid_results(query_image_paths, gallery_image_paths, similarity_matrix, top_k=5)
-
 if __name__ == "__main__":
-    dataset_dir = "../datasets/Ethical-filtered-cropped"
+    dataset_dir = "../datasets/Ethical-filtered"
     enable_apply_clahe = True
     rank1_array, rank5_array, mAP_array = main(dataset_dir, enable_apply_clahe)
     print(f"Rank1 : {np.mean(rank1_array) * 100:.2f}%")

@@ -8,7 +8,7 @@ from src.utils.evaluation_utils import visualize_reid_results, evaluate_rank_map
 def main(dataset_dir):
     extractor = torchreid.utils.FeatureExtractor(
         model_name='resnet50',
-        model_path='../Training/resnet50.pth', # The path to the downloaded model
+        model_path='../weights/resnet50.pth', # The path to the downloaded model
         device="cpu" # Change if you have a compatible GPU
     )
 
@@ -58,10 +58,10 @@ def main(dataset_dir):
         f.write(f"rank5_array = {rank5_array.tolist()}\n")
         f.write(f"mAP_array   = {ap_array.tolist()}\n")
 
-    return rank1_array, rank5_array, ap_array
-
     # Visualise the results
-    # visualize_reid_results(query_images, gallery_images, similarity_matrix, top_k=5)
+    visualize_reid_results(query_image_paths, gallery_image_paths, similarity_matrix, top_k=5)
+
+    return rank1_array, rank5_array, ap_array
 
 if __name__ == "__main__":
     dataset_dir = "../datasets/Ethical-filtered-cropped"

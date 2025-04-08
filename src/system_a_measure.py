@@ -46,7 +46,7 @@ def process_subset(i, subset, dataset_dir, extractor):
 def main():
     extractor = torchreid.utils.FeatureExtractor(
         model_name='resnet50',
-        model_path='../Training/resnet50.pth', # The path to the downloaded model
+        model_path='../weights/resnet50.pth', # The path to the downloaded model
         device="cpu" # Change if you have a compatible GPU
     )
 

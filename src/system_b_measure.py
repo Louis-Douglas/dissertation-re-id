@@ -20,8 +20,6 @@ def process_subset(i, subset, dataset_dir, save_logs):
 
     moda_model_path = "../weights/modanet-seg-30.mlpackage"  # YOLO model trained for clothing segmentation
     coco_model_path = "../weights/yolo11n-seg.mlpackage"  # YOLO model trained for person segmentation
-    # moda_model_path = "../Training/modanet-seg-30.mlpackage"  # Use a YOLO model trained for clothing segmentation
-    # coco_model_path = "../Training/yolo11n-seg.mlpackage"  # Use a YOLO model trained for person segmentation
 
     query_image_files = get_processed_images(query_image_paths, coco_model_path, moda_model_path, save_logs)
     gallery_image_files = get_processed_images(gallery_image_paths, coco_model_path, moda_model_path, save_logs)
@@ -66,8 +64,7 @@ def process_subset(i, subset, dataset_dir, save_logs):
 
 def main():
     save_logs = False
-    # dataset_dir = "../datasets/Ethical-filtered-cropped"
-    dataset_dir = "../datasets/Ethical-filtered-cropped"
+    dataset_dir = "../datasets/Ethical-filtered"
 
     gallery_dir = os.path.join(dataset_dir, "gallery")
     # Define increments
