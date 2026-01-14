@@ -15,7 +15,7 @@ def hypothesis_1(hybrid_metrics: dict, baseline_metrics: dict):
     significantly higher person Re-ID performance
     compared to a conventional CNN-based system.
 
-    H0: he proposed hybrid approach does not
+    H0: The proposed hybrid approach does not
     demonstrate a statistically significant improvement in
     person Re-ID performance compared to a
     conventional CNN-based system.
