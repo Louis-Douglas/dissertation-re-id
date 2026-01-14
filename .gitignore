@@ -29,3 +29,5 @@ Logs/
 # Dont save personal cookies from selenium testing
 cookies.pkl
 bin/
+
+datasets/
