@@ -1,4 +1,4 @@
-# COMP303-2203712
+# COMP303-Dissertation
 This dissertation is submitted as a requirement for the degree of Bachelor of Science at Falmouth University. It presents work conducted exclusively by the author except where indicated in the text. The report may be freely copied and distributed provided the source is acknowledged.
 ## Person Re-Identification using You Only Look Once (YOLO) Segmentation and Colour Analysis:
 This dissertation introduces a novel approach to person re-identification utilising both YOLOv11 object segmentation trained on the Modanet clothing dataset and performing colour comparison between those clothing objects.\
